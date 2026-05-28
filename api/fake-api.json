@@ -1,0 +1,91 @@
+{
+  "jogos": [
+    {
+      "id": 101,
+      "time_casa": "Flamengo",
+      "time_fora": "Palmeiras",
+      "campeonato": "Brasileirão Série A",
+      "data": "Hoje",
+      "hora": "17:00",
+      "status": "Pré-jogo",
+      "placar": null,
+      "odds_1x2": { "casa": 1.85, "empate": 3.55, "fora": 4.2 },
+      "mercados": [
+        { "nome": "Ambas marcam", "opcoes": [{ "nome": "Sim", "odd": 1.72 }, { "nome": "Não", "odd": 2.05 }] },
+        { "nome": "Total de gols", "opcoes": [{ "nome": "Mais de 2.5", "odd": 1.9 }, { "nome": "Menos de 2.5", "odd": 1.86 }, { "nome": "Mais de 3.5", "odd": 2.85 }] },
+        { "nome": "Escanteios", "opcoes": [{ "nome": "Mais de 8.5", "odd": 1.78 }, { "nome": "Menos de 8.5", "odd": 1.96 }] },
+        { "nome": "Handicap", "opcoes": [{ "nome": "Flamengo -1", "odd": 2.7 }, { "nome": "Palmeiras +1", "odd": 1.42 }] },
+        { "nome": "Cartões", "opcoes": [{ "nome": "Mais de 4.5", "odd": 1.82 }, { "nome": "Menos de 4.5", "odd": 1.92 }] },
+        { "nome": "Placar correto", "opcoes": [{ "nome": "1 x 0", "odd": 7.5 }, { "nome": "1 x 1", "odd": 6.2 }, { "nome": "2 x 1", "odd": 8.8 }] }
+      ]
+    },
+    {
+      "id": 102,
+      "time_casa": "São Paulo",
+      "time_fora": "Corinthians",
+      "campeonato": "Brasileirão Série A",
+      "data": "Hoje",
+      "hora": "19:30",
+      "status": "Pré-jogo",
+      "placar": null,
+      "odds_1x2": { "casa": 2.12, "empate": 3.2, "fora": 3.48 },
+      "mercados": [
+        { "nome": "Ambas marcam", "opcoes": [{ "nome": "Sim", "odd": 1.88 }, { "nome": "Não", "odd": 1.84 }] },
+        { "nome": "Total de gols", "opcoes": [{ "nome": "Mais de 1.5", "odd": 1.42 }, { "nome": "Mais de 2.5", "odd": 2.14 }, { "nome": "Menos de 2.5", "odd": 1.66 }] },
+        { "nome": "Escanteios", "opcoes": [{ "nome": "Mais de 9.5", "odd": 1.92 }, { "nome": "Menos de 9.5", "odd": 1.78 }] },
+        { "nome": "Cartões", "opcoes": [{ "nome": "Mais de 5.5", "odd": 1.76 }, { "nome": "Menos de 5.5", "odd": 2.0 }] }
+      ]
+    },
+    {
+      "id": 103,
+      "time_casa": "Barcelona",
+      "time_fora": "Real Madrid",
+      "campeonato": "La Liga",
+      "data": "Hoje",
+      "hora": "21:00",
+      "status": "Ao vivo",
+      "placar": "1 - 1",
+      "odds_1x2": { "casa": 2.45, "empate": 3.1, "fora": 2.9 },
+      "mercados": [
+        { "nome": "Ambas marcam", "opcoes": [{ "nome": "Sim", "odd": 1.48 }, { "nome": "Não", "odd": 2.55 }] },
+        { "nome": "Total de gols", "opcoes": [{ "nome": "Mais de 2.5", "odd": 1.62 }, { "nome": "Mais de 3.5", "odd": 2.28 }, { "nome": "Menos de 3.5", "odd": 1.58 }] },
+        { "nome": "Handicap", "opcoes": [{ "nome": "Barcelona 0", "odd": 1.78 }, { "nome": "Real Madrid 0", "odd": 2.02 }] },
+        { "nome": "Placar correto", "opcoes": [{ "nome": "2 x 1", "odd": 8.4 }, { "nome": "2 x 2", "odd": 7.9 }, { "nome": "1 x 2", "odd": 9.1 }] }
+      ]
+    },
+    {
+      "id": 104,
+      "time_casa": "Manchester City",
+      "time_fora": "Arsenal",
+      "campeonato": "Premier League",
+      "data": "Amanhã",
+      "hora": "16:00",
+      "status": "Pré-jogo",
+      "placar": null,
+      "odds_1x2": { "casa": 1.96, "empate": 3.7, "fora": 3.75 },
+      "mercados": [
+        { "nome": "Ambas marcam", "opcoes": [{ "nome": "Sim", "odd": 1.6 }, { "nome": "Não", "odd": 2.25 }] },
+        { "nome": "Total de gols", "opcoes": [{ "nome": "Mais de 2.5", "odd": 1.74 }, { "nome": "Menos de 2.5", "odd": 2.02 }] },
+        { "nome": "Escanteios", "opcoes": [{ "nome": "Mais de 10.5", "odd": 2.08 }, { "nome": "Menos de 10.5", "odd": 1.68 }] },
+        { "nome": "Cartões", "opcoes": [{ "nome": "Mais de 3.5", "odd": 1.86 }, { "nome": "Menos de 3.5", "odd": 1.88 }] }
+      ]
+    },
+    {
+      "id": 105,
+      "time_casa": "Boca Juniors",
+      "time_fora": "River Plate",
+      "campeonato": "Libertadores",
+      "data": "Hoje",
+      "hora": "22:15",
+      "status": "Pré-jogo",
+      "placar": null,
+      "odds_1x2": { "casa": 2.62, "empate": 3.05, "fora": 2.78 },
+      "mercados": [
+        { "nome": "Ambas marcam", "opcoes": [{ "nome": "Sim", "odd": 1.95 }, { "nome": "Não", "odd": 1.76 }] },
+        { "nome": "Total de gols", "opcoes": [{ "nome": "Mais de 2.5", "odd": 2.22 }, { "nome": "Menos de 2.5", "odd": 1.6 }] },
+        { "nome": "Cartões", "opcoes": [{ "nome": "Mais de 6.5", "odd": 1.7 }, { "nome": "Menos de 6.5", "odd": 2.05 }] },
+        { "nome": "Placar correto", "opcoes": [{ "nome": "1 x 0", "odd": 6.9 }, { "nome": "0 x 0", "odd": 8.2 }, { "nome": "1 x 1", "odd": 5.7 }] }
+      ]
+    }
+  ]
+}
