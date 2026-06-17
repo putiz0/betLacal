@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acesso - Bet Local</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .login-page { min-height: 100vh; display: grid; place-items: center; background: var(--bg, #090b10); }
+    .login-card { width: min(420px, 92vw); padding: 28px; border-radius: 16px; background: #0f1220; border: 1px solid #1b1f2e; }
+    .login-card .brand { justify-content: center; margin-bottom: 20px; }
+    .login-card h1 { text-align: center; font-size: 1.25rem; margin-bottom: 6px; }
+    .login-card .eyebrow { display: block; text-align: center; margin-bottom: 20px; }
+    .login-card label { display: block; margin-bottom: 14px; font-size: 0.9rem; }
+    .login-card label input { width: 100%; margin-top: 6px; }
+    .login-card .primary-btn { width: 100%; margin-top: 8px; }
+    .login-card .auth-hint { text-align: center; margin-top: 14px; font-size: 0.82rem; color: #8b92a8; }
+    .login-card .url-box { background: #1b1f2e; border-radius: 10px; padding: 12px; margin: 14px 0; text-align: center; }
+    .login-card .url-box small { display: block; color: #8b92a8; margin-bottom: 4px; }
+    .login-card .url-box code { font-size: 0.85rem; color: #ff5a16; word-break: break-all; }
+    .login-card .error-msg { color: #ff4d4d; text-align: center; margin-top: 10px; font-size: 0.9rem; }
+  </style>
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <a class="brand" href="index.html" aria-label="Bet Local">
+      <span class="brand-mark">BL</span>
+      <span data-brand-name>Bet Local</span>
+    </a>
+    <span class="eyebrow">Acesso restrito</span>
+    <h1>Entrar no painel</h1>
+
+    <div class="url-box" id="url-info" style="display:none;">
+      <small>URL de acesso do cliente</small>
+      <code id="client-url"></code>
+    </div>
+
+    <form id="login-form">
+      <label>Email<input name="email" type="email" autocomplete="email" required placeholder="seu@email.com"></label>
+      <label>Senha<input name="password" type="password" autocomplete="current-password" required placeholder="Sua senha"></label>
+      <button class="primary-btn" type="submit">Entrar</button>
+      <p class="error-msg" id="login-error"></p>
+    </form>
+
+    <p class="auth-hint" id="login-hint"></p>
+    <p class="auth-hint"><a href="index.html">← Voltar para a tela de vendas</a></p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/tenant.js"></script>
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const clientId = params.get("cliente") || "local";
+      const client = window.BetLocalTenant.getClientById(clientId);
+      const theme = client?.tema || {};
+
+      // Aplica tema do cliente
+      if (theme.cor_primaria) {
+        document.documentElement.style.setProperty("--orange", theme.cor_primaria);
+      }
+      document.querySelectorAll("[data-brand-name]").forEach(el => {
+        el.textContent = theme.nome_sistema || client?.nome || "Bet Local";
+      });
+      document.querySelectorAll(".brand-mark").forEach(el => {
+        if (theme.logo_url) {
+          el.style.background = `url("${theme.logo_url}") center/cover`;
+          el.textContent = "";
+        } else {
+          el.textContent = (theme.nome_sistema || client?.nome || "BL").slice(0, 2).toUpperCase();
+        }
+      });
+
+      // Mostra URL de acesso
+      const baseUrl = window.location.origin + window.location.pathname.replace("login.html", "index.html");
+      const accessUrl = `${baseUrl}?cliente=${encodeURIComponent(client.id)}`;
+      document.getElementById("client-url").textContent = accessUrl;
+      document.getElementById("url-info").style.display = "block";
+
+      // Dica de login
+      const users = client?.usuarios || [];
+      if (users.length) {
+        const first = users[0];
+        document.getElementById("login-hint").textContent =
+          `Dica: ${first.email} / ${first.senha_demo} (${first.role})`;
+      }
+
+      // Login
+      document.getElementById("login-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = new FormData(e.currentTarget);
+        const errorEl = document.getElementById("login-error");
+        errorEl.textContent = "";
+
+        try {
+          const session = await window.BetLocalTenant.signIn(
+            String(form.get("email")),
+            String(form.get("password"))
+          );
+          // Redireciona para admin do cliente (ou master se for super_admin)
+          const target = session.role === "super_admin" ? "admin-master.html" : "admin.html";
+          window.location.href = `${target}?cliente=${encodeURIComponent(client.id)}`;
+        } catch (err) {
+          errorEl.textContent = err.message || "Email ou senha inválidos.";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

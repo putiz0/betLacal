@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificar Bilhete - Bet Local</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .verify-page { min-height: 100vh; display: grid; place-items: center; background: var(--bg, #090b10); padding: 20px; }
+    .verify-card { width: min(480px, 100%); padding: 32px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); text-align: center; }
+    .verify-card .brand { justify-content: center; margin-bottom: 20px; }
+    .verify-card h1 { margin: 0 0 8px; font-size: 1.4rem; }
+    .verify-card .eyebrow { color: var(--orange); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 20px; display: block; }
+    .verify-form { display: flex; gap: 10px; margin-bottom: 24px; }
+    .verify-form input { flex: 1; border: 1px solid var(--line); border-radius: 8px; background: #080c13; color: var(--text); padding: 12px 14px; font-size: 1rem; text-align: center; text-transform: uppercase; }
+    .verify-form button { border: none; border-radius: 8px; background: linear-gradient(135deg, var(--orange), var(--orange-2)); color: #fff; padding: 12px 20px; font-weight: 700; cursor: pointer; }
+    .bet-result { text-align: left; }
+    .bet-result .code-display { text-align: center; font-family: monospace; font-size: 1.8rem; font-weight: 800; color: var(--orange); margin-bottom: 16px; }
+    .bet-result .status-big { text-align: center; padding: 12px; border-radius: 10px; font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+    .bet-result .status-big.aberta { background: rgba(255, 200, 87, 0.14); color: #ffe09a; }
+    .bet-result .status-big.ganha, .bet-result .status-big.paga { background: rgba(36, 217, 130, 0.14); color: #a8f5ce; }
+    .bet-result .status-big.perdida { background: rgba(255, 95, 95, 0.14); color: #ffb6b6; }
+    .bet-result .status-big.cancelada { background: rgba(156, 168, 186, 0.12); color: #d5dbe5; }
+    .selection-item { background: #0b1018; border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+    .selection-item .jogo { font-weight: 700; color: var(--text); }
+    .selection-item .mercado { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+    .selection-item .resultado { margin-top: 6px; font-size: 0.85rem; font-weight: 700; }
+    .selection-item .resultado.ganhou { color: var(--green); }
+    .selection-item .resultado.perdeu { color: var(--red); }
+    .selection-item .resultado.aguardando { color: #ffc857; }
+    .totals-box { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .totals-box .total-item { background: #0b1018; border: 1px solid var(--line); border-radius: 8px; padding: 10px; text-align: center; }
+    .totals-box .total-item .label { color: var(--muted); font-size: 0.75rem; }
+    .totals-box .total-item .value { font-size: 1.1rem; font-weight: 700; margin-top: 4px; }
+    .not-found { color: var(--red); text-align: center; padding: 20px; }
+    .refresh-btn { margin-top: 16px; border: 1px solid var(--line); border-radius: 8px; background: #0b1018; color: var(--soft); padding: 10px 16px; cursor: pointer; }
+    .refresh-btn:hover { border-color: var(--orange); color: #fff; }
+  </style>
+</head>
+<body class="verify-page">
+  <div class="verify-card">
+    <a class="brand" href="index.html" aria-label="Bet Local">
+      <span class="brand-mark">BL</span>
+      <span data-brand-name>Bet Local</span>
+    </a>
+    <span class="eyebrow">Verificação de Bilhete</span>
+    <h1>Consulte sua Aposta</h1>
+
+    <form class="verify-form" id="verify-form">
+      <input name="codigo" type="text" placeholder="AB1234" maxlength="10" required>
+      <button type="submit">🔍 Verificar</button>
+    </form>
+
+    <div id="verify-result"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/tenant.js"></script>
+  <script src="js/league-mapping.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const codeFromUrl = params.get("codigo");
+      
+      if (codeFromUrl) {
+        document.querySelector("[name=codigo]").value = codeFromUrl;
+        verifyBet(codeFromUrl);
+      }
+
+      document.getElementById("verify-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const code = String(new FormData(e.currentTarget).get("codigo")).trim().toUpperCase();
+        verifyBet(code);
+      });
+
+      function verifyBet(code) {
+        const resultBox = document.getElementById("verify-result");
+        const history = window.BetLocal.getBetHistory();
+        const bet = history.find(b => b.codigo.toUpperCase() === code);
+
+        if (!bet) {
+          resultBox.innerHTML = `
+            <div class="not-found">
+              <div style="font-size: 3rem; margin-bottom: 10px;">🔍</div>
+              <strong>Bilhete não encontrado</strong>
+              <p style="color: var(--muted); margin-top: 8px;">Verifique o código e tente novamente.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const statusClass = bet.status.toLowerCase().replace(/\s+/g, "-");
+        const statusEmoji = bet.status === "Aberta" ? "⏳" : bet.status === "Ganha" || bet.status === "Paga" ? "🏆" : bet.status === "Perdida" ? "😞" : "🚫";
+
+        resultBox.innerHTML = `
+          <div class="bet-result">
+            <div class="code-display">${bet.codigo}</div>
+            <div class="status-big ${statusClass}">${statusEmoji} ${bet.status}</div>
+            
+            <div style="margin-bottom: 12px; color: var(--muted); font-size: 0.85rem;">
+              Emitido em: ${bet.data}
+            </div>
+
+            <h3 style="margin: 16px 0 10px; font-size: 1rem;">📋 Seleções</h3>
+            ${(bet.selections || []).map((s, i) => `
+              <div class="selection-item">
+                <div class="jogo">${window.BetLocal.escapeHTML(s.jogo)}</div>
+                <div class="mercado">${window.BetLocal.escapeHTML(s.mercado)}: ${window.BetLocal.escapeHTML(s.opcao)} @ ${window.BetLocal.formatOdd(s.odd)}</div>
+                ${s.settlement ? `<div class="resultado ${s.settlement.includes("ganhou") ? 'ganhou' : s.settlement.includes("perdeu") ? 'perdeu' : 'aguardando'}">🏁 ${window.BetLocal.escapeHTML(s.settlement)}</div>` : `<div class="resultado aguardando">⏳ Aguardando resultado</div>`}
+              </div>
+            `).join("")}
+
+            <div class="totals-box">
+              <div class="total-item">
+                <div class="label">Odd Total</div>
+                <div class="value" style="color: var(--orange);">${window.BetLocal.formatOdd(bet.odd_total)}</div>
+              </div>
+              <div class="total-item">
+                <div class="label">Valor</div>
+                <div class="value">${window.BetLocal.currency.format(Number(bet.valor))}</div>
+              </div>
+              <div class="total-item">
+                <div class="label">Retorno</div>
+                <div class="value" style="color: ${bet.status === 'Ganha' || bet.status === 'Paga' ? 'var(--green)' : 'var(--text)'};">${window.BetLocal.currency.format(Number(bet.retorno))}</div>
+              </div>
+            </div>
+
+            ${bet.pagamento ? `<div style="margin-top: 12px; text-align: center; color: var(--muted); font-size: 0.85rem;">💰 Pagamento: ${bet.pagamento}</div>` : ""}
+
+            <button class="refresh-btn" type="button" onclick="window.location.reload()">🔄 Atualizar Status</button>
+          </div>
+        `;
+      }
+    })();
+  </script>
+</body>
+</html>

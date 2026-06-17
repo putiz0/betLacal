@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -9,11 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
-API_FOOTBALL_KEY = os.getenv("API_FOOTBALL_KEY", "6512896b81baf1e82ea25425879bbc60")
+API_FOOTBALL_KEY = os.getenv("API_FOOTBALL_KEY", "6512896b81baf1e82ea25425879bbc60").strip()
 DEFAULT_TIMEZONE = "America/Sao_Paulo"
 PRE_MATCH_STATUSES = {"NS", "TBD"}
+FINISHED_STATUSES = {"FT", "AET", "PEN"}
+CANCELLED_STATUSES = {"PST", "CANC", "ABD", "SUSP", "INT", "AWD", "WO"}
 ODD_REDUCTION_FACTOR = 0.8
 MINIMUM_ODD = 1.01
+CACHE_TTL_SECONDS = 15 * 60
+API_CACHE: dict[tuple[str, tuple[tuple[str, str], ...]], dict[str, Any]] = {}
 
 MARKET_TRANSLATIONS = {
     "Match Winner": "Resultado final",
@@ -105,6 +110,13 @@ def api_football_get(path: str, params: dict[str, Any] | None = None) -> dict[st
     if not API_FOOTBALL_KEY:
         raise HTTPException(status_code=500, detail="API_FOOTBALL_KEY nao configurada.")
 
+    cache_params = tuple(sorted((str(key), str(value)) for key, value in (params or {}).items()))
+    cache_key = (path, cache_params)
+    cached = API_CACHE.get(cache_key)
+    now = time.time()
+    if cached and now - cached["created_at"] < CACHE_TTL_SECONDS:
+        return cached["payload"]
+
     try:
         with httpx.Client(timeout=20, trust_env=False) as client:
             response = client.get(
@@ -113,7 +125,9 @@ def api_football_get(path: str, params: dict[str, Any] | None = None) -> dict[st
                 headers={"x-apisports-key": API_FOOTBALL_KEY},
             )
             response.raise_for_status()
-            return response.json()
+            payload = response.json()
+            API_CACHE[cache_key] = {"created_at": now, "payload": payload}
+            return payload
     except httpx.HTTPStatusError as error:
         raise HTTPException(status_code=error.response.status_code, detail=error.response.text) from error
     except httpx.HTTPError as error:
@@ -153,6 +167,14 @@ def is_fixture_bettable(fixture: dict[str, Any]) -> bool:
     if fixture_date is None:
         return short_status == "TBD"
     return fixture_date >= now
+
+
+def is_cancelled_status(short_status: str | None) -> bool:
+    return (short_status or "").upper() in CANCELLED_STATUSES
+
+
+def is_finished_status(short_status: str | None) -> bool:
+    return (short_status or "").upper() in FINISHED_STATUSES
 
 
 def decimal_odd(seed: int, base: float = 1.65) -> float:
@@ -346,6 +368,28 @@ def map_fixture(fixture: dict[str, Any], odds_event: dict[str, Any] | None = Non
     }
 
 
+def map_fixture_status(fixture: dict[str, Any]) -> dict[str, Any]:
+    fixture_info = fixture.get("fixture", {})
+    teams = fixture.get("teams", {})
+    goals = fixture.get("goals", {})
+    status = fixture_info.get("status", {})
+    home_team = teams.get("home", {})
+    away_team = teams.get("away", {})
+    short_status = status.get("short") or "NS"
+
+    return {
+        "id": int(fixture_info.get("id") or 0),
+        "time_casa": home_team.get("name") or "Mandante",
+        "time_fora": away_team.get("name") or "Visitante",
+        "gols_casa": goals.get("home"),
+        "gols_fora": goals.get("away"),
+        "status": status.get("long") or short_status,
+        "status_api": short_status,
+        "finalizado": is_finished_status(short_status),
+        "cancelado": is_cancelled_status(short_status),
+    }
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -395,4 +439,23 @@ def get_jogos(
             )
             for fixture in bettable_fixtures
         ]
+    }
+
+
+@app.get("/api/jogos/status")
+def get_jogos_status(ids: str = Query(..., min_length=1)) -> dict[str, Any]:
+    fixture_ids = [
+        item.strip()
+        for item in ids.replace(",", "-").split("-")
+        if item.strip().isdigit()
+    ]
+    if not fixture_ids:
+        raise HTTPException(status_code=400, detail="Informe ao menos um id de jogo valido.")
+
+    payload = api_football_get("/fixtures", {"ids": "-".join(fixture_ids), "timezone": DEFAULT_TIMEZONE})
+    statuses = [map_fixture_status(fixture) for fixture in payload.get("response", [])]
+
+    return {
+        "cache_segundos": CACHE_TTL_SECONDS,
+        "jogos": statuses,
     }

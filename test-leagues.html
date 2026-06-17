@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste de Ligas - BetLocal</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f1a; 
+      color: #fff; 
+      padding: 20px;
+      margin: 0;
+    }
+    h1 { color: #e94560; margin-bottom: 10px; }
+    h2 { color: #0ead69; margin-top: 30px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+    
+    .stats { 
+      background: #1a1a2e; 
+      padding: 15px 20px; 
+      border-radius: 10px; 
+      margin-bottom: 20px;
+      display: flex;
+      gap: 30px;
+    }
+    .stat { text-align: center; }
+    .stat-value { font-size: 2em; font-weight: bold; color: #0ead69; }
+    .stat-label { color: #888; font-size: 0.9em; }
+    
+    .filter-section {
+      background: #1a1a2e;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .filter-section label {
+      display: block;
+      margin-bottom: 10px;
+      color: #888;
+    }
+    select {
+      width: 100%;
+      padding: 12px;
+      background: #16213e;
+      border: 1px solid #333;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    select:focus { outline: 2px solid #e94560; }
+    
+    .leagues-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .league-tag {
+      background: #16213e;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .league-tag:hover {
+      background: #1f2b47;
+      border-color: #e94560;
+    }
+    .league-tag.active {
+      background: #e94560;
+      color: #fff;
+    }
+    .league-tag .count {
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+      font-size: 0.85em;
+    }
+    
+    .games-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1a1a2e;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .games-table th {
+      background: #16213e;
+      padding: 12px 15px;
+      text-align: left;
+      color: #888;
+      font-weight: normal;
+      text-transform: uppercase;
+      font-size: 0.8em;
+      letter-spacing: 1px;
+    }
+    .games-table td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #252540;
+    }
+    .games-table tr:hover td {
+      background: #1f2b47;
+    }
+    .league-badge {
+      display: inline-block;
+      background: #252540;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      color: #0ead69;
+    }
+    .status-live { color: #e94560; }
+    .status-finished { color: #666; }
+    .odds { 
+      font-weight: bold;
+      background: #252540;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin: 2px;
+      display: inline-block;
+    }
+    .odds-1 { color: #4ade80; }
+    .odds-x { color: #fbbf24; }
+    .odds-2 { color: #60a5fa; }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+    }
+    .loading::after {
+      content: '';
+      animation: dots 1.5s infinite;
+    }
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+    
+    .error {
+      background: #3d0f0f;
+      border: 1px solid #e94560;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚽ Teste de Filtro de Ligas</h1>
+  
+  <div class="stats" id="stats">
+    <div class="stat">
+      <div class="stat-value" id="total-games">-</div>
+      <div class="stat-label">Total de Jogos</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="total-leagues">-</div>
+      <div class="stat-label">Ligas</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="betting-games">-</div>
+      <div class="stat-label">Para Apostar</div>
+    </div>
+  </div>
+  
+  <div class="filter-section">
+    <label>Filtrar por Liga:</label>
+    <select id="league-filter">
+      <option value="all">Todas as ligas</option>
+    </select>
+  </div>
+  
+  <h2>Ligas Disponíveis</h2>
+  <div class="leagues-grid" id="leagues-grid">
+    <div class="loading">Carregando ligas</div>
+  </div>
+  
+  <h2>Jogos</h2>
+  <div id="games-container">
+    <div class="loading">Carregando jogos</div>
+  </div>
+
+  <script src="js/league-mapping.js"></script>
+  <script>
+    const API_URL = "https://uagwqerjcjjlnftytkqe.supabase.co/functions/v1/api-football/jogos";
+    
+    function identifyLeague(jogo) {
+      const home = jogo.time_casa || jogo.home || "";
+      const away = jogo.time_fora || jogo.away || "";
+      const currentLeague = jogo.campeonato || "";
+      
+      if (currentLeague && currentLeague !== "Outros" && currentLeague !== "Campeonato") {
+        return currentLeague;
+      }
+      
+      const homeLeague = TEAM_LEAGUE_MAP[home];
+      if (homeLeague) return homeLeague;
+      
+      const awayLeague = TEAM_LEAGUE_MAP[away];
+      if (awayLeague) return awayLeague;
+      
+      return currentLeague || "Outros";
+    }
+    
+    function sortLeagues(leagues) {
+      return leagues.sort((a, b) => {
+        const priorityA = LEAGUE_PRIORITY[a] || 50;
+        const priorityB = LEAGUE_PRIORITY[b] || 50;
+        return priorityA - priorityB;
+      });
+    }
+    
+    let allGames = [];
+    let leagues = {};
+    
+    async function loadGames() {
+      try {
+        const response = await fetch(API_URL, { cache: "no-store" });
+        const data = await response.json();
+        allGames = (data.jogos || []).map(j => ({
+          ...j,
+          campeonato: identifyLeague(j)
+        }));
+        
+        // Contar ligas
+        leagues = {};
+        allGames.forEach(j => {
+          leagues[j.campeonato] = (leagues[j.campeonato] || 0) + 1;
+        });
+        
+        renderStats();
+        renderLeagues();
+        renderGames();
+        
+      } catch (error) {
+        document.getElementById("games-container").innerHTML = `
+          <div class="error">
+            <p>Erro ao carregar jogos:</p>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    }
+    
+    function renderStats() {
+      const betting = allGames.filter(j => j.allow_aposta !== false && !j.status?.toLowerCase().includes('vivo') && !j.status?.toLowerCase().includes('encerrado'));
+      document.getElementById("total-games").textContent = allGames.length;
+      document.getElementById("total-leagues").textContent = Object.keys(leagues).length;
+      document.getElementById("betting-games").textContent = betting.length;
+    }
+    
+    function renderLeagues() {
+      const grid = document.getElementById("leagues-grid");
+      const select = document.getElementById("league-filter");
+      
+      const sorted = sortLeagues(Object.keys(leagues));
+      
+      // Grid
+      grid.innerHTML = sorted.map(league => `
+        <div class="league-tag" data-league="${league}" onclick="selectLeague('${league}')">
+          ${league}<span class="count">${leagues[league]}</span>
+        </div>
+      `).join('');
+      
+      // Select
+      select.innerHTML = `<option value="all">Todas as ligas (${allGames.length})</option>` +
+        sorted.map(league => `<option value="${league}">${league} (${leagues[league]})</option>`).join('');
+      
+      // Listener
+      select.addEventListener("change", (e) => selectLeague(e.target.value));
+    }
+    
+    function selectLeague(league) {
+      // Update grid
+      document.querySelectorAll('.league-tag').forEach(tag => {
+        tag.classList.toggle('active', tag.dataset.league === league);
+      });
+      
+      // Update select
+      document.getElementById("league-filter").value = league;
+      
+      // Update count
+      const filtered = league === 'all' ? allGames : allGames.filter(j => j.campeonato === league);
+      document.getElementById("total-games").textContent = filtered.length;
+      
+      renderGames(league);
+    }
+    
+    function renderGames(filterLeague = 'all') {
+      const container = document.getElementById("games-container");
+      
+      let games = filterLeague === 'all' ? allGames : allGames.filter(j => j.campeonato === filterLeague);
+      
+      if (games.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#888;padding:40px;">Nenhum jogo encontrado</p>';
+        return;
+      }
+      
+      // Ordenar por hora
+      games.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+      
+      container.innerHTML = `
+        <table class="games-table">
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Casa</th>
+              <th>Fora</th>
+              <th>Campeonato</th>
+              <th>Status</th>
+              <th>1</th>
+              <th>X</th>
+              <th>2</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${games.map(j => {
+              const odds = j.odds_1x2 || {};
+              const isLive = j.status?.toLowerCase().includes('vivo');
+              const isFinished = j.status?.toLowerCase().includes('encerrado');
+              
+              return `
+                <tr>
+                  <td>${j.hora || '--:--'}</td>
+                  <td><strong>${j.time_casa}</strong></td>
+                  <td><strong>${j.time_fora}</strong></td>
+                  <td><span class="league-badge">${j.campeonato}</span></td>
+                  <td class="${isLive ? 'status-live' : isFinished ? 'status-finished' : ''}">
+                    ${j.status || 'Pre-jogo'}
+                    ${j.placar ? ` (${j.placar})` : ''}
+                  </td>
+                  <td><span class="odds odds-1">${odds.casa?.toFixed(2) || '-'}</span></td>
+                  <td><span class="odds odds-x">${odds.empate?.toFixed(2) || '-'}</span></td>
+                  <td><span class="odds odds-2">${odds.fora?.toFixed(2) || '-'}</span></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+    
+    loadGames();
+  </script>
+</body>
+</html>

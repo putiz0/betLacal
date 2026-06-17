@@ -4,6 +4,8 @@ const STORAGE_KEYS = {
   stake: "betlocal.stake"
 };
 
+// TEAM_LEAGUE_MAP e LEAGUE_PRIORITY vem do league-mapping.js via window
+
 const DEMO_DATA = {
   jogos: [
     {
@@ -98,6 +100,22 @@ const DEMO_DATA = {
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+function getClientId() {
+  return window.BetLocalTenant?.getCurrentClient?.()?.id || "local";
+}
+
+function storageKey(key) {
+  return `${key}.${getClientId()}`;
+}
+
+function readJSONStorage(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(storageKey(key)) || "null") ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function escapeHTML(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -109,6 +127,56 @@ function escapeHTML(value) {
 
 function formatOdd(value) {
   return Number(value || 1).toFixed(2);
+}
+
+// Função para buscar logo de time com variações de nome
+function findTeamLogo(teamName, TEAM_LOGOS) {
+  if (!teamName) return null;
+  
+  // 1. Busca exata
+  if (TEAM_LOGOS[teamName]) return TEAM_LOGOS[teamName];
+  
+  // 2. Usar alias se disponível
+  const TEAM_ALIASES = window.TEAM_ALIASES || {};
+  const alias = TEAM_ALIASES[teamName];
+  if (alias && TEAM_LOGOS[alias]) return TEAM_LOGOS[alias];
+  
+  // 3. Normalizar e buscar
+  const normalized = teamName
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  
+  // Tentar variações comuns
+  const variations = [
+    // Sem sufixos comuns
+    teamName.replace(/\s+(AC|FC|SC|SP|RJ|MG|RS|BA|PE|CE|PR)$/i, ""),
+    // Versão com Athletic Club
+    teamName.replace("Athletic Club", "Athletic"),
+    // Versão com Sport Club
+    teamName.replace("Sport Club", "Sport"),
+    // Versão com Red Bull
+    teamName.replace("Red Bull ", ""),
+    // Só primeiras palavras
+    teamName.split(" ")[0],
+    // Sem acentos
+    teamName.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  ];
+  
+  for (const v of variations) {
+    if (v && TEAM_LOGOS[v]) return TEAM_LOGOS[v];
+  }
+  
+  // 4. Busca parcial (contains) - útil para Barcelona, etc
+  const searchNormalized = teamName.toLowerCase().split(" ")[0];
+  for (const [key, logo] of Object.entries(TEAM_LOGOS)) {
+    if (key.toLowerCase().startsWith(searchNormalized)) {
+      return logo;
+    }
+  }
+  
+  return null;
 }
 
 function normalizeMarket(market) {
@@ -128,40 +196,134 @@ function normalizeMarket(market) {
 }
 
 async function fetchJogos() {
-  const backendUrl = "http://localhost:8000/api/jogos";
-  const useDemoFallback = new URLSearchParams(window.location.search).get("demo") === "1";
+  const mode = window.BetLocalConfig?.gameMode || "auto";
+  let jogos = [];
+  let source = "demo";
 
-  try {
-    const response = await fetch(backendUrl, { cache: "no-store" });
-    if (!response.ok) throw new Error("Backend indisponível");
-    const data = await response.json();
-    if (Array.isArray(data.jogos) && data.jogos.length) {
-      return data.jogos.map(normalizeGame);
+  // 1. Tentar Edge Function do Supabase (API-Football real)
+  if (mode !== "demo") {
+    const backendUrl =
+      window.BetLocalConfig?.getBackendUrl?.("/jogos") ||
+      "https://uagwqerjcjjlnftytkqe.supabase.co/functions/v1/api-football/jogos";
+
+    try {
+      const response = await fetch(backendUrl, { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.jogos) && data.jogos.length) {
+          jogos = data.jogos;
+          source = data.source || "api";
+        }
+      }
+    } catch (error) {
+      console.warn("Edge Function não respondeu:", error.message);
     }
-  } catch (error) {
-    console.warn("Usando jogos locais porque a API-Football/backend não respondeu.", error);
   }
 
-  if (!useDemoFallback) return [];
-
-  try {
-    const response = await fetch("api/fake-api.json", { cache: "no-store" });
-    if (!response.ok) throw new Error("Arquivo local indisponível");
-    const data = await response.json();
-    if (!Array.isArray(data.jogos)) throw new Error("Formato inválido");
-    return data.jogos.map(normalizeGame);
-  } catch (error) {
-    return DEMO_DATA.jogos;
+  // 2. Tentar API alternativa (football-data.org)
+  if (!jogos.length && mode !== "demo") {
+    try {
+      const altJogos = await fetchJogosAlternative();
+      if (altJogos.length) {
+        jogos = altJogos;
+        source = "alt-api";
+      }
+    } catch (error) {
+      console.warn("API alternativa falhou:", error.message);
+    }
   }
+
+  // 3. Fallback para fake-api.json
+  if (!jogos.length) {
+    try {
+      const response = await fetch("api/fake-api.json", { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.jogos)) jogos = data.jogos;
+      }
+    } catch (error) {
+      console.warn("fake-api.json falhou:", error.message);
+    }
+  }
+
+  // 4. Fallback final: dados embutidos
+  if (!jogos.length) {
+    jogos = DEMO_DATA.jogos;
+    source = "demo-builtin";
+  }
+
+  // 5. Enriquecer com logos via TheSportsDB
+  await enrichJogosWithLogos(jogos);
+
+  window.dispatchEvent(new CustomEvent("betlocal:data-source", { detail: { source, count: jogos.length } }));
+  return jogos.map(normalizeGame);
+}
+
+function identifyLeague(jogo) {
+  const home = jogo.time_casa || jogo.home || "";
+  const away = jogo.time_fora || jogo.away || "";
+  const currentLeague = jogo.campeonato || "";
+  const TEAM_LEAGUE_MAP = window.TeamLeagueMap || {};
+  
+  // Se ja tem liga valida (nao e "Outros"), usar ela
+  if (currentLeague && currentLeague !== "Outros" && currentLeague !== "Campeonato" && currentLeague !== "Campeonato de Clubes") {
+    return currentLeague;
+  }
+  
+  // Tentar identificar pela equipe
+  const homeLeague = TEAM_LEAGUE_MAP[home];
+  if (homeLeague) return homeLeague;
+  
+  const awayLeague = TEAM_LEAGUE_MAP[away];
+  if (awayLeague) return awayLeague;
+  
+  // Padrao: usar o que vier da API
+  return currentLeague || "Outros";
 }
 
 function normalizeGame(jogo) {
+  // Obter escudos e função de reduzir odds
+  const TEAM_LOGOS = window.TEAM_LOGOS || {};
+  const reduceOdds = window.reduceOdds || (odd => odd);
+  
+  // Se não tem logo, tentar pegar do mapeamento estático
+  // Também tentar variações de nome (com/sem AC, FC, etc.)
+  const teamName = jogo.time_casa || "";
+  const awayName = jogo.time_fora || "";
+  
+  let homeLogo = jogo.logo_casa || null;
+  if (!homeLogo) homeLogo = findTeamLogo(teamName, TEAM_LOGOS);
+  
+  let awayLogo = jogo.logo_fora || null;
+  if (!awayLogo) awayLogo = findTeamLogo(awayName, TEAM_LOGOS);
+  
+  // Reduzir odds 1X2 em 20%
+  const reducedOdds = {
+    casa: reduceOdds(jogo.odds_1x2?.casa || 2.0),
+    empate: reduceOdds(jogo.odds_1x2?.empate || 3.0),
+    fora: reduceOdds(jogo.odds_1x2?.fora || 3.0)
+  };
+  
+  // Reduzir odds dos mercados
+  const reducedMercados = (jogo.mercados || []).map(mercado => ({
+    ...mercado,
+    opcoes: (mercado.opcoes || []).map(opcao => ({
+      ...opcao,
+      odd: reduceOdds(opcao.odd)
+    }))
+  }));
+  
   return {
     ...jogo,
+    logo_casa: homeLogo,
+    logo_fora: awayLogo,
     status: jogo.status || "Pré-jogo",
     allow_aposta: jogo.allow_aposta ?? inferBettableStatus(jogo.status),
     placar: jogo.placar || null,
-    mercados: (jogo.mercados || []).map(normalizeMarket)
+    mercados: reducedMercados,
+    odds_1x2: reducedOdds,
+    // Enriquecer com liga identificada
+    campeonato: identifyLeague(jogo)
   };
 }
 
@@ -171,7 +333,7 @@ function inferBettableStatus(status) {
 }
 
 const TicketManager = {
-  selections: JSON.parse(localStorage.getItem(STORAGE_KEYS.ticket) || "[]"),
+  selections: readJSONStorage(STORAGE_KEYS.ticket, []),
 
   init() {
     const normalizedSelections = this.withoutMarketConflicts(this.selections);
@@ -182,9 +344,9 @@ const TicketManager = {
 
     const stakeInput = document.getElementById("valor-aposta");
     if (stakeInput) {
-      stakeInput.value = localStorage.getItem(STORAGE_KEYS.stake) || "";
+      stakeInput.value = localStorage.getItem(storageKey(STORAGE_KEYS.stake)) || "";
       stakeInput.addEventListener("input", () => {
-        localStorage.setItem(STORAGE_KEYS.stake, stakeInput.value);
+        localStorage.setItem(storageKey(STORAGE_KEYS.stake), stakeInput.value);
         this.render();
       });
     }
@@ -195,12 +357,13 @@ const TicketManager = {
   },
 
   save() {
-    localStorage.setItem(STORAGE_KEYS.ticket, JSON.stringify(this.selections));
+    localStorage.setItem(storageKey(STORAGE_KEYS.ticket), JSON.stringify(this.selections));
   },
 
   add(selection) {
     const frozenSelection = {
       id: `${selection.gameId}-${selection.mercado}-${selection.opcao}`,
+      cliente_id: getClientId(),
       gameId: selection.gameId,
       jogo: selection.jogo,
       campeonato: selection.campeonato,
@@ -266,9 +429,43 @@ const TicketManager = {
       return null;
     }
 
+    // Verificar limite de aposta do operador
+    const limite = window.BetLocalOperador?.getLimite?.() || 1000;
+    if (stake > limite) {
+      alert(`⚠️ Limite de aposta excedido!\nMáximo permitido: R$ ${limite.toFixed(2)}\nValor informado: R$ ${stake.toFixed(2)}\n\nEntre em contato com o dono para aumentar o limite.`);
+      return null;
+    }
+
+    // Verificar se caixa está aberto
+    const caixa = window.BetLocalOperador?.getCaixa?.();
+    if (caixa && !caixa.aberto) {
+      alert("🔴 Caixa fechado!\n\nAbra o caixa no painel do operador antes de gerar bilhetes.");
+      return null;
+    }
+
     const code = createBetCode();
+    
+    // Buscar cliente selecionado (se houver)
+    const clienteSelect = document.getElementById("cliente-aposta");
+    const clienteId = clienteSelect?.value || "";
+    let clienteNome = "";
+    let clienteTelefone = "";
+    
+    if (clienteId && window.BetLocalOperador?.getClientes) {
+      const clientes = window.BetLocalOperador.getClientes();
+      const cliente = clientes.find(c => c.id === clienteId);
+      if (cliente) {
+        clienteNome = cliente.nome;
+        clienteTelefone = cliente.telefone;
+      }
+    }
+
     const bet = {
       codigo: code,
+      cliente_id: getClientId(),
+      cliente_aposta_id: clienteId,
+      cliente_nome: clienteNome,
+      cliente_telefone: clienteTelefone,
       data_iso: new Date().toISOString(),
       data: new Date().toLocaleString("pt-BR"),
       selections: this.selections.map((item) => ({ ...item })),
@@ -285,15 +482,35 @@ const TicketManager = {
     syncBetToSupabase(bet);
 
     if (display) {
+      const qrUrl = `${window.location.origin}${window.location.pathname.replace("index.html", "verificar.html")}?codigo=${encodeURIComponent(code)}`;
       display.innerHTML = `
         <div class="receipt-card">
           <small>Código gerado</small>
           <strong class="receipt-code">${escapeHTML(code)}</strong>
           <div class="receipt-line"><span>Odd total</span><strong>${formatOdd(bet.odd_total)}</strong></div>
           <div class="receipt-line"><span>Retorno</span><strong>${currency.format(bet.retorno)}</strong></div>
-          <small>Odd salva no momento da emissão. QR Code pode ser integrado depois.</small>
+          ${clienteNome ? `<div class="receipt-line"><span>Cliente</span><strong>${escapeHTML(clienteNome)}</strong></div>` : ""}
+          <div id="qr-bilhete" style="margin:12px auto; width:150px; height:150px;"></div>
+          <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px;">
+            <a class="whatsapp-btn" href="${createWhatsAppLink(bet)}" target="_blank" rel="noopener">📱 WhatsApp</a>
+            <button class="status-btn" type="button" onclick="window.BetLocalOperador?.shareTelegram?.(${JSON.stringify(bet).replace(/"/g, '&quot;')})">✈️ Telegram</button>
+            <button class="status-btn" type="button" onclick="window.BetLocalOperador?.printBilhete?.(${JSON.stringify(bet).replace(/"/g, '&quot;')})">🖨️ Imprimir</button>
+          </div>
+          <small>Escaneie o QR Code para acompanhar sua aposta em tempo real.</small>
         </div>
       `;
+      
+      // Gerar QR Code
+      if (typeof QRCode !== "undefined") {
+        setTimeout(() => {
+          const qrContainer = document.getElementById("qr-bilhete");
+          if (qrContainer) {
+            QRCode.toCanvas(qrContainer, qrUrl, { width: 150, margin: 2 }, (err) => {
+              if (err) console.error("Erro QR:", err);
+            });
+          }
+        }, 100);
+      }
     }
 
     this.clear();
@@ -348,11 +565,11 @@ function createBetCode() {
 }
 
 function getBetHistory() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.history) || "[]");
+  return readJSONStorage(STORAGE_KEYS.history, []);
 }
 
 function saveBetHistory(history) {
-  localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(history));
+  localStorage.setItem(storageKey(STORAGE_KEYS.history), JSON.stringify(history));
   window.dispatchEvent(new CustomEvent("betlocal:history-updated"));
 }
 
@@ -376,13 +593,23 @@ async function syncBetStatusToSupabase(code, status) {
   }
 }
 
+async function syncBetUpdateToSupabase(bet) {
+  if (!window.BetLocalSupabase?.isEnabled()) return;
+
+  try {
+    await window.BetLocalSupabase.updateBet(bet);
+  } catch (error) {
+    console.warn("A aposta foi atualizada localmente, mas nao foi atualizada no Supabase.", error);
+  }
+}
+
 async function refreshHistoryFromSupabase() {
   if (!window.BetLocalSupabase?.isEnabled()) return getBetHistory();
 
   try {
     const remoteHistory = await window.BetLocalSupabase.fetchBets();
     if (remoteHistory.length) {
-      localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(remoteHistory));
+      localStorage.setItem(storageKey(STORAGE_KEYS.history), JSON.stringify(remoteHistory));
       window.dispatchEvent(new CustomEvent("betlocal:history-updated"));
     }
     return remoteHistory;
@@ -410,6 +637,7 @@ function isSameGameMarket(first, second) {
 
 function makeSelection(jogo, mercado, opcao, odd) {
   return {
+    cliente_id: getClientId(),
     gameId: jogo.id,
     jogo: `${jogo.time_casa} x ${jogo.time_fora}`,
     campeonato: jogo.campeonato,
@@ -417,6 +645,56 @@ function makeSelection(jogo, mercado, opcao, odd) {
     opcao,
     odd: Number(odd)
   };
+}
+
+function buildWhatsAppMessage(bet) {
+  const lines = [
+    `Cupom: ${bet.codigo}`,
+    "",
+    ...bet.selections.flatMap((item) => [
+      item.jogo,
+      `${item.mercado}: ${item.opcao}`,
+      `Odd: ${formatOdd(item.odd)}`,
+      ""
+    ]),
+    `Odd total: ${formatOdd(bet.odd_total)}`,
+    `Valor: ${currency.format(bet.valor)}`,
+    `Retorno possivel: ${currency.format(bet.retorno)}`,
+    `Status: ${bet.status}`
+  ];
+  return lines.join("\n");
+}
+
+function createWhatsAppLink(bet) {
+  return `https://wa.me/?text=${encodeURIComponent(buildWhatsAppMessage(bet))}`;
+}
+
+async function fetchFixtureStatuses(ids) {
+  const cleanIds = [...new Set(ids.map(String).filter(Boolean))];
+  if (!cleanIds.length) return [];
+
+  const backendUrl =
+    window.BetLocalConfig?.getBackendUrl?.("/status") ||
+    "https://uagwqerjcjjlnftytkqe.supabase.co/functions/v1/api-football/status";
+
+  const response = await fetch(
+    `${backendUrl}?ids=${cleanIds.join("-")}`,
+    { cache: "no-store" }
+  );
+  if (!response.ok) throw new Error("Nao foi possivel consultar resultados.");
+  const data = await response.json();
+
+  // Mapear resposta da API-Football para o formato que o front espera
+  return (data.response || []).map((f) => ({
+    id: String(f.fixture.id),
+    status: f.fixture.status?.short || "NS",
+    elapsed: f.fixture.status?.elapsed ?? null,
+    placar: f.goals?.home !== null && f.goals?.away !== null
+      ? `${f.goals.home} - ${f.goals.away}`
+      : null,
+    home: f.teams?.home?.name,
+    away: f.teams?.away?.name,
+  }));
 }
 
 function renderOddButton(jogo, mercado, opcao, odd) {
@@ -524,14 +802,26 @@ function renderCompeticoes(jogos, onSelect) {
   const list = document.getElementById("competicoes-lista");
   if (!list) return;
 
+  // Agrupar por liga
   const groups = jogos.reduce((acc, jogo) => {
-    acc[jogo.campeonato] = (acc[jogo.campeonato] || 0) + 1;
+    const league = jogo.campeonato || "Outros";
+    acc[league] = (acc[league] || 0) + 1;
     return acc;
   }, {});
 
+  // Ordenar por prioridade
+  const LEAGUE_PRIORITY = window.LeaguePriority || {};
+  const sortedLeagues = Object.entries(groups).sort((a, b) => {
+    const priorityA = LEAGUE_PRIORITY[a[0]] || 50;
+    const priorityB = LEAGUE_PRIORITY[b[0]] || 50;
+    if (priorityA !== priorityB) return priorityA - priorityB;
+    // Se mesma prioridade, ordenar por nome
+    return a[0].localeCompare(b[0]);
+  });
+
   list.innerHTML = `
     <li><button class="active" type="button" data-league="all"><span>Todos os campeonatos</span><small>${jogos.length}</small></button></li>
-    ${Object.entries(groups).map(([league, count]) => `
+    ${sortedLeagues.map(([league, count]) => `
       <li><button type="button" data-league="${escapeHTML(league)}"><span>${escapeHTML(league)}</span><small>${count}</small></button></li>
     `).join("")}
   `;
@@ -592,13 +882,254 @@ document.addEventListener("DOMContentLoaded", () => {
   if (document.body.dataset.page === "home") initHome();
 });
 
+/* ========== BUSCA DE ESCUDOS VIA THESPORTSDB (GRATUITO) ========== */
+
+const TEAM_LOGO_CACHE_KEY = "betlocal.team_logos";
+
+function getTeamLogoCache() {
+  try {
+    return JSON.parse(localStorage.getItem(TEAM_LOGO_CACHE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveTeamLogoCache(cache) {
+  localStorage.setItem(TEAM_LOGO_CACHE_KEY, JSON.stringify(cache));
+}
+
+async function fetchTeamLogoFromSportsDB(teamName) {
+  const cache = getTeamLogoCache();
+  if (cache[teamName]) return cache[teamName];
+
+  try {
+    const url = `https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamName)}`;
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const teams = data.teams || [];
+    if (!teams.length) return null;
+
+    // Preferir logo do time (strTeamBadge) ou escudo (strTeamLogo)
+    const logo = teams[0].strTeamBadge || teams[0].strTeamLogo || teams[0].strTeamIcon;
+    if (logo) {
+      cache[teamName] = logo;
+      saveTeamLogoCache(cache);
+    }
+    return logo;
+  } catch (error) {
+    console.warn("Erro ao buscar logo via TheSportsDB:", error.message);
+    return null;
+  }
+}
+
+async function enrichJogosWithLogos(jogos) {
+  const TEAM_LOGOS = window.TEAM_LOGOS || {};
+  const promises = jogos.map(async (jogo) => {
+    // 1. Se já tem logo da API, usar ela
+    // 2. Se não tem, buscar no mapeamento estático
+    // 3. Se ainda não tem, buscar na API externa (TheSportsDB)
+    
+    if (!jogo.logo_casa) {
+      jogo.logo_casa = findTeamLogo(jogo.time_casa, TEAM_LOGOS) || null;
+    }
+    if (!jogo.logo_fora) {
+      jogo.logo_fora = findTeamLogo(jogo.time_fora, TEAM_LOGOS) || null;
+    }
+    
+    // Se ainda não tem, buscar na API externa
+    if (!jogo.logo_casa) {
+      const extLogo = await fetchTeamLogoFromSportsDB(jogo.time_casa);
+      if (extLogo) jogo.logo_casa = extLogo;
+    }
+    if (!jogo.logo_fora) {
+      const extLogo = await fetchTeamLogoFromSportsDB(jogo.time_fora);
+      if (extLogo) jogo.logo_fora = extLogo;
+    }
+    
+    return jogo;
+  });
+  return Promise.all(promises);
+}
+
+/* ========== FUNCOES DE ODDS PARA API ALTERNATIVA ========== */
+
+function decimalOdd(seed, base = 1.65) {
+  return Math.round((base + ((seed * 37) % 145) / 100) * 100) / 100;
+}
+
+function reduceOdd(odd) {
+  return Math.max(1.01, Math.round(odd * 0.8 * 100) / 100);
+}
+
+function buildDemoMarkets(home, away) {
+  return [
+    {
+      nome: "Ambas marcam",
+      descricao: "Mercado de aposta disponivel para este jogo.",
+      opcoes: [{ nome: "Sim", odd: 1.82 }, { nome: "Nao", odd: 1.92 }]
+    },
+    {
+      nome: "Total de gols",
+      descricao: "Mercado de aposta disponivel para este jogo.",
+      opcoes: [{ nome: "Mais de 1.5", odd: 1.38 }, { nome: "Mais de 2.5", odd: 1.95 }, { nome: "Menos de 2.5", odd: 1.78 }]
+    },
+    {
+      nome: "Escanteios",
+      descricao: "Mercado de aposta disponivel para este jogo.",
+      opcoes: [{ nome: "Mais de 8.5", odd: 1.86 }, { nome: "Menos de 8.5", odd: 1.86 }]
+    },
+    {
+      nome: "Handicap",
+      descricao: "Mercado de aposta disponivel para este jogo.",
+      opcoes: [{ nome: `${home} -1`, odd: 2.65 }, { nome: `${away} +1`, odd: 1.45 }]
+    },
+    {
+      nome: "Cartoes",
+      descricao: "Mercado de aposta disponivel para este jogo.",
+      opcoes: [{ nome: "Mais de 4.5", odd: 1.82 }, { nome: "Menos de 4.5", odd: 1.92 }]
+    },
+    {
+      nome: "Placar correto",
+      descricao: "Mercado de aposta disponivel para este jogo.",
+      opcoes: [{ nome: "1 x 0", odd: 7.5 }, { nome: "1 x 1", odd: 6.2 }, { nome: "2 x 1", odd: 8.8 }]
+    }
+  ].map(m => ({
+    ...m,
+    opcoes: m.opcoes.map(o => ({ ...o, odd: reduceOdd(o.odd) }))
+  }));
+}
+
+/* ========== API ALTERNATIVA DE FIXTURES (OpenLigaDB - GRATUITA) ========== */
+
+async function fetchJogosAlternative() {
+  const allJogos = [];
+
+  // Ligas disponíveis na OpenLigaDB (gratuita, sem token)
+  // URL sem season → pega temporada atual automaticamente
+  const leagues = [
+    { shortcut: "bl1", name: "Bundesliga" },
+    { shortcut: "bl2", name: "2. Bundesliga" },
+    { shortcut: "bl3", name: "3. Liga" },
+    { shortcut: "dfb", name: "DFB-Pokal" },
+  ];
+
+  for (const league of leagues) {
+    try {
+      // URL sem season → retorna temporada atual
+      const url = `https://api.openligadb.de/getmatchdata/${league.shortcut}`;
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) continue;
+
+      const matches = await response.json();
+      if (!Array.isArray(matches)) continue;
+
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+
+      // Primeiro: tentar jogos futuros (hoje ou depois)
+      let futureMatches = matches.filter(m => {
+        const matchDate = new Date(m.matchDateTimeUTC || m.matchDateTime);
+        return matchDate.toISOString().slice(0, 10) >= todayStr;
+      });
+
+      // Se não tiver futuros, pegar os últimos jogos (para sempre ter algo)
+      if (!futureMatches.length) {
+        futureMatches = matches.slice(-20); // Últimos 20 jogos
+      }
+
+      for (const m of futureMatches) {
+        const home = m.team1 || {};
+        const away = m.team2 || {};
+        const isFinished = m.matchIsFinished;
+        const finalResult = m.matchResults?.find(r => r.resultName === "Endergebnis");
+        const matchDate = new Date(m.matchDateTimeUTC || m.matchDateTime);
+        const matchDateStr = matchDate.toISOString().slice(0, 10);
+
+        allJogos.push({
+          id: m.matchID || Math.random().toString(36).slice(2),
+          time_casa: home.teamName || "Mandante",
+          time_fora: away.teamName || "Visitante",
+          logo_casa: home.teamIconUrl || null,
+          logo_fora: away.teamIconUrl || null,
+          campeonato: `${league.name}`,
+          data: matchDateStr === todayStr ? "Hoje" : matchDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+          hora: matchDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }),
+          status: isFinished ? "FT" : "Pre-jogo",
+          allow_aposta: !isFinished,
+          placar: finalResult ? `${finalResult.pointsTeam1} - ${finalResult.pointsTeam2}` : null,
+          odds_1x2: {
+            casa: reduceOdd(decimalOdd(m.matchID || 1, 1.55)),
+            empate: reduceOdd(decimalOdd((m.matchID || 1) + 1, 2.75)),
+            fora: reduceOdd(decimalOdd((m.matchID || 1) + 2, 1.85))
+          },
+          mercados: buildDemoMarkets(home.teamName || "Mandante", away.teamName || "Visitante")
+        });
+      }
+    } catch (error) {
+      console.warn(`OpenLigaDB ${league.shortcut} falhou:`, error.message);
+    }
+  }
+
+  // Se ainda nao tiver jogos, buscar por endpoint de "jogos do dia"
+  if (!allJogos.length) {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const url = `https://api.openligadb.de/getmatchdata/${today}`;
+      const response = await fetch(url, { cache: "no-store" });
+      if (response.ok) {
+        const matches = await response.json();
+        for (const m of matches) {
+          const home = m.team1 || {};
+          const away = m.team2 || {};
+          const finalResult = m.matchResults?.find(r => r.resultName === "Endergebnis");
+
+          allJogos.push({
+            id: m.matchID || Math.random().toString(36).slice(2),
+            time_casa: home.teamName || "Mandante",
+            time_fora: away.teamName || "Visitante",
+            logo_casa: home.teamIconUrl || null,
+            logo_fora: away.teamIconUrl || null,
+            campeonato: m.leagueName || "Campeonato",
+            data: "Hoje",
+            hora: new Date(m.matchDateTimeUTC || m.matchDateTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+            status: m.matchIsFinished ? "FT" : "Pre-jogo",
+            allow_aposta: !m.matchIsFinished,
+            placar: finalResult ? `${finalResult.pointsTeam1} - ${finalResult.pointsTeam2}` : null,
+            odds_1x2: {
+              casa: reduceOdd(decimalOdd(m.matchID || 1, 1.55)),
+              empate: reduceOdd(decimalOdd((m.matchID || 1) + 1, 2.75)),
+              fora: reduceOdd(decimalOdd((m.matchID || 1) + 2, 1.85))
+            },
+            mercados: buildDemoMarkets(home.teamName || "Mandante", away.teamName || "Visitante")
+          });
+        }
+      }
+    } catch (error) {
+      console.warn("OpenLigaDB por dia falhou:", error.message);
+    }
+  }
+
+  return allJogos;
+}
+
 window.BetLocal = {
   fetchJogos,
+  fetchJogosAlternative,
+  fetchTeamLogoFromSportsDB,
+  enrichJogosWithLogos,
+  decimalOdd,
+  reduceOdd,
+  buildDemoMarkets,
   TicketManager,
   getBetHistory,
   saveBetHistory,
   syncBetStatusToSupabase,
+  syncBetUpdateToSupabase,
   refreshHistoryFromSupabase,
+  fetchFixtureStatuses,
+  buildWhatsAppMessage,
+  createWhatsAppLink,
   makeSelection,
   renderOddButton,
   renderTeamLogo,
@@ -607,5 +1138,6 @@ window.BetLocal = {
   isGameBettable,
   currency,
   formatOdd,
-  escapeHTML
+  escapeHTML,
+  getClientId
 };

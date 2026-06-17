@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Geral - Bet Local Master</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .master-page { --sidebar-w: 260px; }
+    .master-sidebar { width: var(--sidebar-w); }
+    .master-content { margin-left: var(--sidebar-w); }
+    .master-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 28px; border-bottom:1px solid var(--line); }
+    .master-header h1 { margin:0; font-size:1.35rem; }
+    .master-header .eyebrow { color: var(--orange); font-weight:700; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; }
+    .master-grid { display:grid; gap:20px; padding:24px 28px; }
+    .master-grid-2 { grid-template-columns: 380px minmax(0,1fr); }
+    .master-card { background: var(--surface); border:1px solid var(--line); border-radius: 12px; padding: 20px; }
+    .master-card h2 { margin:0 0 14px; font-size:1.05rem; }
+    .master-card h3 { margin:0 0 10px; font-size:0.95rem; color: var(--soft); }
+    .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid label { display:grid; gap:6px; font-size:0.85rem; color: var(--soft); }
+    .form-grid input, .form-grid select { width:100%; border:1px solid var(--line); border-radius:8px; background:#080c13; color:var(--text); padding:10px 12px; font-size:0.9rem; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .master-table-wrap { overflow-x:auto; }
+    .master-table { width:100%; border-collapse:collapse; min-width:900px; }
+    .master-table th, .master-table td { padding:12px 10px; border-bottom:1px solid var(--muted-line); text-align:left; font-size:0.88rem; }
+    .master-table th { color:var(--muted); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em; }
+    .master-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .client-row .client-name { font-weight:700; color:var(--text); }
+    .client-row .client-email { color:var(--muted); font-size:0.8rem; }
+    .client-row .client-url { color:var(--orange); font-size:0.75rem; word-break:break-all; margin-top:3px; }
+    .badge-plan { display:inline-block; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; }
+    .badge-plan.teste { background:rgba(255,200,87,0.14); color:#ffe09a; }
+    .badge-plan.padrao { background:rgba(156,168,186,0.12); color:#d5dbe5; }
+    .badge-plan.personalizado { background:rgba(255,90,22,0.14); color:#ffc8a8; }
+    .days-pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; }
+    .days-pill.ok { background:rgba(36,217,130,0.12); color:#a8f5ce; }
+    .days-pill.warn { background:rgba(255,200,87,0.14); color:#ffe09a; }
+    .days-pill.danger { background:rgba(255,95,95,0.14); color:#ffb6b6; }
+    .action-btns { display:flex; flex-wrap:wrap; gap:5px; }
+    .action-btns .btn { border:1px solid var(--line); border-radius:6px; background:#0b1018; color:var(--soft); padding:5px 10px; font-size:0.75rem; cursor:pointer; }
+    .action-btns .btn:hover { border-color:var(--orange); color:#fff; }
+    .action-btns .btn.primary { background: linear-gradient(135deg, var(--orange), var(--orange-2)); color:#fff; border:none; }
+    .search-box-master { display:flex; gap:8px; margin-bottom:14px; }
+    .search-box-master input { flex:1; border:1px solid var(--line); border-radius:8px; background:#080c13; color:var(--text); padding:10px 12px; }
+    .revenue-bar { display:flex; align-items:flex-end; gap:6px; height:80px; margin-top:10px; }
+    .revenue-bar .bar { flex:1; background: linear-gradient(to top, var(--orange), var(--orange-2)); border-radius:4px 4px 0 0; min-height:4px; opacity:0.85; }
+    .revenue-bar .bar:hover { opacity:1; }
+    .revenue-labels { display:flex; justify-content:space-between; margin-top:6px; font-size:0.72rem; color:var(--muted); }
+    .stats-row { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:20px; padding:0 28px; padding-top:24px; }
+    .stat-big { background: var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px; }
+    .stat-big .label { color:var(--muted); font-size:0.82rem; margin-bottom:6px; }
+    .stat-big .value { font-size:1.45rem; font-weight:800; }
+    .stat-big .value.up { color: var(--green); }
+    .stat-big .value.down { color: var(--red); }
+    .stat-big .value.money { color: var(--orange); }
+    @media (max-width: 1100px) { .master-grid-2 { grid-template-columns: 1fr; } .stats-row { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 860px) { .master-content { margin-left:0; } .master-sidebar { position:static; width:auto; height:auto; border-right:0; border-bottom:1px solid var(--line); } .stats-row { grid-template-columns: 1fr; padding:14px; } .master-grid { padding:14px; } }
+  </style>
+</head>
+<body class="master-page" data-page="master">
+  <div class="admin-layout master-layout">
+    <aside class="admin-sidebar master-sidebar">
+      <a class="brand admin-brand" href="index.html" aria-label="Bet Local">
+        <span class="brand-mark">BL</span>
+        <span>Bet Local Master</span>
+      </a>
+      <nav class="admin-nav" aria-label="Navegacao geral">
+        <a class="active" href="#dashboard">Dashboard</a>
+        <a href="#clientes">Clientes</a>
+        <a href="login.html">Login Cliente</a>
+        <a href="index.html">Tela de vendas</a>
+        <button id="master-logout" class="nav-button" type="button">Sair</button>
+      </nav>
+    </aside>
+
+    <main class="admin-content master-content">
+      <header class="master-header">
+        <div>
+          <span class="eyebrow">Painel Geral</span>
+          <h1>Controle de Clientes e Licenças</h1>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span id="master-user" style="color:var(--muted); font-size:0.85rem;"></span>
+        </div>
+      </header>
+
+      <section class="stats-row" id="master-stats"></section>
+
+      <div class="master-grid master-grid-2">
+        <!-- Formulário Novo Cliente -->
+        <section class="master-card" id="novo-cliente">
+          <h2>➕ Novo Cliente</h2>
+          <form id="client-form">
+            <div class="form-grid">
+              <label class="full">Nome da casa<input name="nome" required placeholder="Ex: Bar do João"></label>
+              <label>Email de acesso<input name="email" type="email" required placeholder="dono@email.com"></label>
+              <label>Senha inicial<input name="senha" type="text" required placeholder="Senha provisória"></label>
+              <label>Plano
+                <select name="plano">
+                  <option value="teste">🎁 Teste 30 dias</option>
+                  <option value="padrao">📦 Padrão R$150/mês</option>
+                  <option value="personalizado">⭐ Personalizado R$200/mês</option>
+                </select>
+              </label>
+              <label>Vencimento<input name="vencimento" type="date" required></label>
+              <label>Status inicial
+                <select name="status">
+                  <option value="teste">Teste</option>
+                  <option value="ativo" selected>Ativo</option>
+                </select>
+              </label>
+              <label class="full">Nome do sistema<input name="nome_sistema" placeholder="Ex: Bet Bar"></label>
+              <label>Cor principal<input name="cor_primaria" type="color" value="#ff5a16"></label>
+              <label>Cor de fundo<input name="cor_fundo" type="color" value="#090b10"></label>
+              <label class="full">Logo URL<input name="logo_url" type="url" placeholder="https://..."></label>
+              <button class="primary-btn full" type="submit">💾 Criar Cliente</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Tabela de Clientes -->
+        <section class="master-card" id="clientes">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <h2>👥 Clientes Cadastrados</h2>
+            <span id="client-count" style="color:var(--muted); font-size:0.85rem;"></span>
+          </div>
+          <div class="search-box-master">
+            <input id="search-client" type="search" placeholder="Buscar por nome, email ou ID...">
+            <button class="ghost-btn" id="clear-search">Limpar</button>
+          </div>
+          <div class="master-table-wrap">
+            <table class="master-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Plano</th>
+                  <th>Vencimento</th>
+                  <th>Dias</th>
+                  <th>Status</th>
+                  <th style="min-width:220px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="clientes-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Gráfico de Receita -->
+      <div class="master-grid" style="padding-top:0;">
+        <section class="master-card">
+          <h2>📊 Projeção de Receita Mensal</h2>
+          <div class="revenue-bar" id="revenue-chart"></div>
+          <div class="revenue-labels" id="revenue-labels"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/tenant.js"></script>
+  <script src="js/master.js"></script>
+</body>
+</html>

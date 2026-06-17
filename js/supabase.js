@@ -8,6 +8,7 @@ const betLocalSupabaseClient = window.supabase?.createClient
 
 function betToSupabaseRow(bet) {
   return {
+    cliente_id: bet.cliente_id || window.BetLocalTenant?.getCurrentClient?.()?.id || "cliente-local",
     codigo: bet.codigo,
     data_iso: bet.data_iso,
     data: bet.data,
@@ -17,12 +18,14 @@ function betToSupabaseRow(bet) {
     retorno: Number(bet.retorno),
     status: bet.status,
     pagamento: bet.pagamento,
+    settlement_note: bet.settlement_note || null,
     atualizado_em: bet.atualizado_em || null
   };
 }
 
 function rowToBet(row) {
   return {
+    cliente_id: row.cliente_id,
     codigo: row.codigo,
     data_iso: row.data_iso,
     data: row.data || new Date(row.data_iso).toLocaleString("pt-BR"),
@@ -32,6 +35,7 @@ function rowToBet(row) {
     retorno: Number(row.retorno),
     status: row.status || "Aberta",
     pagamento: row.pagamento || "Pendente",
+    settlement_note: row.settlement_note || null,
     atualizado_em: row.atualizado_em || null
   };
 }
@@ -53,6 +57,22 @@ window.BetLocalSupabase = {
     return { ok: true };
   },
 
+  async fetchCurrentProfile() {
+    if (!this.client) return null;
+
+    const { data: authData, error: authError } = await this.client.auth.getUser();
+    if (authError || !authData?.user) return null;
+
+    const { data, error } = await this.client
+      .from("user_profiles")
+      .select("user_id, cliente_id, role, nome")
+      .eq("user_id", authData.user.id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async updateBetStatus(code, status) {
     if (!this.client) return { ok: false, skipped: true };
 
@@ -65,7 +85,21 @@ window.BetLocalSupabase = {
     const { error } = await this.client
       .from(BETLOCAL_BETS_TABLE)
       .update(payload)
-      .eq("codigo", code);
+      .eq("codigo", code)
+      .eq("cliente_id", window.BetLocalTenant?.getCurrentClient?.()?.id || "cliente-local");
+
+    if (error) throw error;
+    return { ok: true };
+  },
+
+  async updateBet(bet) {
+    if (!this.client) return { ok: false, skipped: true };
+
+    const { error } = await this.client
+      .from(BETLOCAL_BETS_TABLE)
+      .update(betToSupabaseRow({ ...bet, atualizado_em: new Date().toLocaleString("pt-BR") }))
+      .eq("codigo", bet.codigo)
+      .eq("cliente_id", bet.cliente_id || window.BetLocalTenant?.getCurrentClient?.()?.id || "cliente-local");
 
     if (error) throw error;
     return { ok: true };
@@ -77,6 +111,7 @@ window.BetLocalSupabase = {
     const { data, error } = await this.client
       .from(BETLOCAL_BETS_TABLE)
       .select("*")
+      .eq("cliente_id", window.BetLocalTenant?.getCurrentClient?.()?.id || "cliente-local")
       .order("data_iso", { ascending: false });
 
     if (error) throw error;

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bet Local - Modo TV</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; color: #fff; font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif; overflow: hidden; }
+    .tv-layout { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+    .tv-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background: linear-gradient(90deg, #ff5a16, #ff7a1a); }
+    .tv-header .brand { display: flex; align-items: center; gap: 12px; font-size: 1.4rem; font-weight: 800; }
+    .tv-header .brand-mark { width: 44px; height: 44px; border-radius: 10px; background: #fff; color: #ff5a16; display: grid; place-items: center; font-size: 1.2rem; }
+    .tv-header .clock { font-size: 1.6rem; font-weight: 700; font-family: monospace; }
+    .tv-main { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; padding: 20px 32px; }
+    .tv-games { display: grid; gap: 12px; overflow-y: auto; }
+    .tv-game-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; }
+    .tv-game-card .team { display: flex; align-items: center; gap: 12px; }
+    .tv-game-card .team.away { justify-content: flex-end; flex-direction: row-reverse; }
+    .tv-game-card .team img { width: 40px; height: 40px; object-fit: contain; }
+    .tv-game-card .team-name { font-size: 1.1rem; font-weight: 700; }
+    .tv-game-card .score { font-size: 2rem; font-weight: 800; font-family: monospace; color: #ff5a16; }
+    .tv-game-card .meta { text-align: center; font-size: 0.8rem; color: #aaa; }
+    .tv-game-card.live { border-color: #24d982; background: rgba(36,217,130,0.08); }
+    .tv-game-card.live .live-badge { display: inline-block; background: #ff5f5f; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .tv-sidebar { display: grid; gap: 16px; }
+    .tv-panel { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; }
+    .tv-panel h3 { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .tv-bet-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+    .tv-bet-item:last-child { border-bottom: none; }
+    .tv-bet-item .code { color: #ff5a16; font-weight: 700; font-family: monospace; }
+    .tv-footer { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 12px; background: rgba(255,255,255,0.04); font-size: 0.85rem; color: #888; }
+    .tv-qr { width: 80px; height: 80px; background: #fff; border-radius: 8px; padding: 4px; }
+    .tv-odds-scroll { display: flex; gap: 16px; overflow-x: auto; padding: 4px; }
+    .tv-odd-pill { flex-shrink: 0; background: rgba(255,90,22,0.2); border: 1px solid rgba(255,90,22,0.4); border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; }
+    @media (max-width: 900px) { .tv-main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="tv-layout">
+    <header class="tv-header">
+      <div class="brand">
+        <span class="brand-mark">BL</span>
+        <span data-brand-name>Bet Local</span>
+      </div>
+      <div class="clock" id="tv-clock">00:00</div>
+    </header>
+
+    <main class="tv-main">
+      <div class="tv-games" id="tv-games">
+        <div style="text-align:center; padding:40px; color:#888;">Carregando jogos...</div>
+      </div>
+
+      <div class="tv-sidebar">
+        <div class="tv-panel">
+          <h3>🔥 Apostas Recentes</h3>
+          <div id="tv-bets"></div>
+        </div>
+        <div class="tv-panel">
+          <h3>📊 Principais Odds</h3>
+          <div class="tv-odds-scroll" id="tv-odds"></div>
+        </div>
+        <div class="tv-panel" style="text-align:center;">
+          <h3>📱 Aposte pelo Celular</h3>
+          <div id="tv-qr-code" style="margin:0 auto; width:120px; height:120px; background:#fff; border-radius:8px; padding:6px;"></div>
+          <p style="margin-top:8px; font-size:0.8rem; color:#aaa;">Escaneie para acessar</p>
+        </div>
+      </div>
+    </main>
+
+    <footer class="tv-footer">
+      <span>🎫 Apostas presenciais com cupom rápido</span>
+      <span>•</span>
+      <span>⚡ Odds fixadas no bilhete</span>
+      <span>•</span>
+      <span>💰 Pagamento no caixa</span>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/league-mapping.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    (function() {
+      // Relógio
+      function updateClock() {
+        const now = new Date();
+        document.getElementById("tv-clock").textContent = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // QR Code
+      const url = window.location.origin + window.location.pathname.replace("tv.html", "index.html");
+      QRCode.toCanvas(document.getElementById("tv-qr-code"), url, { width: 108, margin: 1 }, (err) => {
+        if (err) console.error(err);
+      });
+
+      // Carregar jogos
+      async function loadGames() {
+        const jogos = await window.BetLocal.fetchJogos();
+        const container = document.getElementById("tv-games");
+        if (!jogos.length) {
+          container.innerHTML = `<div style="text-align:center; padding:40px; color:#888;">Nenhum jogo disponível no momento.</div>`;
+          return;
+        }
+
+        container.innerHTML = jogos.slice(0, 6).map(jogo => {
+          const isLive = jogo.status?.toLowerCase().includes("vivo") || jogo.status?.toLowerCase().includes("live");
+          return `
+            <div class="tv-game-card ${isLive ? 'live' : ''}">
+              <div class="team">
+                <img src="${jogo.logo_casa || ''}" alt="" onerror="this.style.display='none'">
+                <span class="team-name">${jogo.time_casa}</span>
+              </div>
+              <div class="meta">
+                ${isLive ? '<span class="live-badge">● AO VIVO</span><br>' : ''}
+                <span class="score">${jogo.placar || "vs"}</span><br>
+                <span>${jogo.campeonato}</span><br>
+                <span>${jogo.data} ${jogo.hora}</span>
+              </div>
+              <div class="team away">
+                <img src="${jogo.logo_fora || ''}" alt="" onerror="this.style.display='none'">
+                <span class="team-name">${jogo.time_fora}</span>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+      loadGames();
+      setInterval(loadGames, 300000); // Refresh a cada 5 min
+
+      // Apostas recentes
+      function loadRecentBets() {
+        const history = window.BetLocal.getBetHistory();
+        const recent = history.slice(0, 5);
+        const box = document.getElementById("tv-bets");
+        if (!recent.length) {
+          box.innerHTML = `<div style="color:#888; font-size:0.85rem;">Nenhuma aposta ainda.</div>`;
+          return;
+        }
+        box.innerHTML = recent.map(b => `
+          <div class="tv-bet-item">
+            <span><span class="code">${b.codigo}</span> — ${b.selections?.[0]?.jogo || ""}</span>
+            <span style="color:#ff5a16; font-weight:700;">R$ ${Number(b.valor).toFixed(2)}</span>
+          </div>
+        `).join("");
+      }
+      loadRecentBets();
+      window.addEventListener("betlocal:history-updated", loadRecentBets);
+
+      // Odds populares
+      function loadOdds() {
+        const box = document.getElementById("tv-odds");
+        box.innerHTML = `
+          <div class="tv-odd-pill">Flamengo 1.85</div>
+          <div class="tv-odd-pill">Palmeiras 4.20</div>
+          <div class="tv-odd-pill">Empate 3.55</div>
+          <div class="tv-odd-pill">Mais 2.5 gols 1.90</div>
+          <div class="tv-odd-pill">Ambas marcam 1.72</div>
+        `;
+      }
+      loadOdds();
+    })();
+  </script>
+</body>
+</html>

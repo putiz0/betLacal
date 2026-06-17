@@ -17,4 +17,6 @@ http://localhost:8010/index.html
 
 O front chama `http://localhost:8000/api/jogos`. Esse endpoint filtra jogos encerrados e libera apostas apenas para partidas ainda nao iniciadas (`NS`/`TBD`) no fuso `America/Sao_Paulo`.
 
+As chamadas da API-Football ficam em cache por 15 minutos para economizar sua cota diaria. O endpoint `http://localhost:8000/api/jogos/status?ids=ID1,ID2` consulta status/resultados para o painel administrativo conferir apostas abertas.
+
 Se nao houver mais jogos apostaveis hoje, o backend busca os proximos jogos. Se a API-Football falhar ou nao retornar jogos, o sistema usa o JSON local como fallback.
