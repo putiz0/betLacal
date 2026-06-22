@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { API_FOOTBALL_KEYS } from "./keys.ts";
 
 // ============================================
 // CONFIGURACAO - PROTECAO ANTI-DETECCAO
@@ -30,17 +31,18 @@ const MIN_REQUEST_DELAY = 2000; // 2 segundos
 let lastRequestTime = 0;
 
 // API Keys (rotacao fallback)
-const API_KEYS = [
-  "6512896b81baf1e82ea25425879bbc60",
-  "99ea0939b67ab603c55df4d76464476c",
-  "d096e762ddd15d82d9135366e65d6de050a8b8676d7549af6c83227887d17ae9",
-  "425257ac2bf87e2552ba95c5509693af",
-  "fe80bd94-093e-4e97-8b6e-ccd2a07e3514",
-  "d184f1b59c310c727933ad5a7fe535ce85dd37a91a0b59dc555ad624cfbb4796",
-  "3b4bdc7036b600579bed48a3d5293255",
-  "b8b35cec-33e0-4b82-8eaa-0afa49040395",
-  // Adicione novas chaves aqui quando tiver
-];
+// Usa secrets do Supabase primeiro, fallback para keys.ts
+function loadApiKeys(): string[] {
+  const envKeys = Deno.env.get("API_FOOTBALL_KEYS");
+  if (envKeys) {
+    return envKeys.split(",").map(k => k.trim()).filter(Boolean);
+  }
+  const singleKey = Deno.env.get("API_FOOTBALL_KEY");
+  if (singleKey) {
+    return [singleKey];
+  }
+  return API_FOOTBALL_KEYS;
+}
 
 const API_FOOTBALL_URL = "https://v3.football.api-sports.io";
 const DEFAULT_TIMEZONE = "America/Sao_Paulo";
@@ -130,8 +132,9 @@ async function apiFootballGet(path: string, params?: Record<string, string>): Pr
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   }
 
+  const keys = loadApiKeys();
   let lastError: Error | null = null;
-  for (const apiKey of API_KEYS) {
+  for (const apiKey of keys) {
     try {
       const response = await fetch(url.toString(), {
         headers: {

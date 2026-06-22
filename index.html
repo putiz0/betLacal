@@ -8,19 +8,26 @@
 </head>
 <body data-page="home">
   <header class="topbar">
-    <a class="brand" href="index.html" aria-label="Bet Local">
-      <span class="brand-mark">BL</span>
-      <span data-brand-name>Bet Local</span>
-    </a>
-    <nav class="main-nav" aria-label="Navegação principal">
+    <div class="topbar-row">
+      <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menu" type="button">
+        <span class="menu-icon"></span>
+      </button>
+      <a class="brand" href="index.html" aria-label="Bet Local">
+        <span class="brand-mark">BL</span>
+        <span data-brand-name>Bet Local</span>
+      </a>
+      <div class="topbar-actions">
+        <span class="cashier-status">Caixa aberto</span>
+        <span id="data-source-badge" class="data-badge" style="display:none;"></span>
+      </div>
+    </div>
+    <nav class="main-nav" id="main-nav" aria-label="Navegação principal">
       <a class="active" href="index.html">Esportes</a>
       <a href="index.html#ao-vivo">Ao vivo</a>
-      <a href="login.html">Admin</a>
       <a href="operador.html">Operador</a>
     </nav>
-    <div class="topbar-actions">
+    <div class="mobile-cashier" id="mobile-cashier" style="display:none;">
       <span class="cashier-status">Caixa aberto</span>
-      <span id="data-source-badge" class="data-badge" style="display:none;"></span>
     </div>
   </header>
 
@@ -100,6 +107,18 @@
     </aside>
   </div>
 
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var toggle = document.getElementById("menu-toggle");
+      var nav = document.getElementById("main-nav");
+      if (toggle && nav) {
+        toggle.addEventListener("click", function () {
+          nav.classList.toggle("main-nav--open");
+          toggle.classList.toggle("menu-toggle--open");
+        });
+      }
+    });
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
@@ -107,6 +126,10 @@
   <script src="js/tenant.js"></script>
   <script src="js/league-mapping.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/ui-utils.js"></script>
+  <script src="js/caixa.js"></script>
+  <script src="js/crm.js"></script>
   <script src="js/operador.js"></script>
   <script>
     // Badge de fonte de dados (API real vs Demo)

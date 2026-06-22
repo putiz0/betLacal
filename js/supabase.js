@@ -1,5 +1,5 @@
-const SUPABASE_URL = "https://uagwqerjcjjlnftytkqe.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_K6kMg8_wOUqzrpP3xziF2Q_PpSz4-Z6";
+const SUPABASE_URL = window.BetLocalConfig?.supabaseUrl || "https://uagwqerjcjjlnftytkqe.supabase.co";
+const SUPABASE_ANON_KEY = window.BetLocalConfig?.supabaseAnonKey || "sb_publishable_K6kMg8_wOUqzrpP3xziF2Q_PpSz4-Z6";
 const BETLOCAL_BETS_TABLE = "Apostas";
 
 const betLocalSupabaseClient = window.supabase?.createClient
@@ -39,6 +39,8 @@ function rowToBet(row) {
     atualizado_em: row.atualizado_em || null
   };
 }
+
+let _realtimeChannel = null;
 
 window.BetLocalSupabase = {
   client: betLocalSupabaseClient,
@@ -116,5 +118,28 @@ window.BetLocalSupabase = {
 
     if (error) throw error;
     return (data || []).map(rowToBet);
+  },
+
+  subscribeToBetUpdates(callback) {
+    if (!this.client) return null;
+    if (_realtimeChannel) {
+      this.client.removeChannel(_realtimeChannel);
+    }
+    _realtimeChannel = this.client
+      .channel("betlocal-bets")
+      .on("postgres_changes", { event: "*", schema: "public", table: BETLOCAL_BETS_TABLE }, (payload) => {
+        if (typeof callback === "function") {
+          callback(payload);
+        }
+      })
+      .subscribe();
+    return _realtimeChannel;
+  },
+
+  unsubscribeFromBetUpdates() {
+    if (_realtimeChannel && this.client) {
+      this.client.removeChannel(_realtimeChannel);
+      _realtimeChannel = null;
+    }
   }
 };

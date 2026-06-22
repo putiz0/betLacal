@@ -4,10 +4,32 @@ const BETLOCAL_TENANT_KEYS = {
 };
 
 const BETLOCAL_PLANS = {
-  teste: { nome: "Teste gratis", preco: 0, dias: 30, personalizado: true },
-  padrao: { nome: "Plano Padrao", preco: 150, dias: 30, personalizado: false },
-  personalizado: { nome: "Plano Personalizado", preco: 200, dias: 30, personalizado: true }
+  teste: {
+    nome: "Teste grátis", preco: 0, dias: 30,
+    features: {}
+  },
+  padrao: {
+    nome: "Plano Padrão", preco: 150, dias: 30,
+    features: {}
+  },
+  plus: {
+    nome: "Plano Plus", preco: 180, dias: 30,
+    features: { nome_personalizado: true }
+  },
+  master: {
+    nome: "Plano Master", preco: 200, dias: 30,
+    features: { nome_personalizado: true, cores_personalizadas: true, ajustes_visuais: true }
+  }
 };
+
+function getPlanFeatures(planId) {
+  const plan = BETLOCAL_PLANS[planId];
+  return plan ? plan.features : {};
+}
+
+function planHasFeature(planId, feature) {
+  return !!getPlanFeatures(planId)[feature];
+}
 
 const DEFAULT_CLIENT_ID = "cliente-local";
 
@@ -17,7 +39,7 @@ const DEFAULT_CLIENTS = [
     nome: "Bet Local",
     email: "dono@betlocal.local",
     senha_demo: "123456",
-    plano: "personalizado",
+    plano: "master",
     inicio: new Date().toISOString().slice(0, 10),
     vencimento: addDays(new Date(), 30).toISOString().slice(0, 10),
     status: "teste",
@@ -68,7 +90,15 @@ function getSession() {
   return readJSON(BETLOCAL_TENANT_KEYS.session, null);
 }
 
+function isValidSession(session) {
+  return session && typeof session === "object"
+    && typeof session.email === "string"
+    && typeof session.role === "string"
+    && typeof session.cliente_id === "string";
+}
+
 function setSession(session) {
+  if (!isValidSession(session)) throw new Error("Sessão inválida.");
   saveJSON(BETLOCAL_TENANT_KEYS.session, session);
   window.dispatchEvent(new CustomEvent("betlocal:session-updated"));
 }
@@ -106,30 +136,44 @@ function canAccessClient(client) {
   return !["suspenso", "cancelado"].includes(status);
 }
 
+function isValidHexColor(str) {
+  return /^#[0-9a-fA-F]{3,8}$/.test(String(str).trim());
+}
+
+function sanitizeUrl(str) {
+  return String(str || "").replace(/[^a-zA-Z0-9:/._~%#?&=+@\[\]-]/g, "");
+}
+
 function applyClientTheme(client = getCurrentClient()) {
   const theme = client?.tema || {};
+  const features = getPlanFeatures(client?.plano);
   const root = document.documentElement;
-  if (theme.cor_primaria) {
-    root.style.setProperty("--orange", theme.cor_primaria);
-    root.style.setProperty("--orange-2", theme.cor_primaria);
-  }
-  if (theme.cor_fundo) {
-    root.style.setProperty("--bg", theme.cor_fundo);
-  }
-
-  document.querySelectorAll("[data-brand-name]").forEach((element) => {
-    element.textContent = theme.nome_sistema || client?.nome || "Bet Local";
-  });
-
-  document.querySelectorAll(".brand-mark").forEach((element) => {
-    if (theme.logo_url) {
-      element.style.background = `url("${theme.logo_url}") center/cover`;
-      element.textContent = "";
-    } else {
-      element.style.background = "";
-      element.textContent = (theme.nome_sistema || client?.nome || "BL").slice(0, 2).toUpperCase();
+  if (features.cores_personalizadas) {
+    const primaria = String(theme.cor_primaria || "").trim();
+    if (primaria && isValidHexColor(primaria)) {
+      root.style.setProperty("--orange", primaria);
+      root.style.setProperty("--orange-2", primaria);
     }
-  });
+    const fundo = String(theme.cor_fundo || "").trim();
+    if (fundo && isValidHexColor(fundo)) {
+      root.style.setProperty("--bg", fundo);
+    }
+  }
+
+  if (features.nome_personalizado) {
+    document.querySelectorAll("[data-brand-name]").forEach((element) => {
+      element.textContent = theme.nome_sistema || client?.nome || "Bet Local";
+    });
+    document.querySelectorAll(".brand-mark").forEach((element) => {
+      if (theme.logo_url) {
+        element.style.background = `url("${sanitizeUrl(theme.logo_url)}") center/cover`;
+        element.textContent = "";
+      } else {
+        element.style.background = "";
+        element.textContent = (theme.nome_sistema || client?.nome || "BL").slice(0, 2).toUpperCase();
+      }
+    });
+  }
 }
 
 function showLicenseBlock(client) {
@@ -145,6 +189,59 @@ function showLicenseBlock(client) {
   `;
 }
 
+function getExpiryWarning(client) {
+  if (!client?.vencimento) return null;
+  const remaining = daysRemaining(client);
+  const status = computedLicenseStatus(client);
+  if (status === "suspenso" || status === "cancelado") {
+    return { level: "critical", message: `Licença ${status}. Renove para reativar.` };
+  }
+  if (remaining < 0) {
+    return { level: "danger", message: `Atrasado há ${Math.abs(remaining)} dia(s). Renove imediatamente!` };
+  }
+  if (remaining <= 5) {
+    return { level: "warning", message: `Vence em ${remaining} dia(s). Renove para evitar bloqueio.` };
+  }
+  return null;
+}
+
+function renderExpiryBanner() {
+  const client = getCurrentClient();
+  const warning = getExpiryWarning(client);
+  if (!warning) return;
+  const banner = document.createElement("div");
+  banner.className = `license-banner license-${warning.level}`;
+  banner.innerHTML = `
+    <span>⚠️ ${warning.message}</span>
+    <button onclick="this.parentElement.remove()" aria-label="Fechar">&times;</button>
+  `;
+  document.body.prepend(banner);
+}
+
+function renewClient(clientId, days = 30) {
+  const clients = loadClients();
+  const client = clients.find(c => c.id === clientId);
+  if (!client) throw new Error("Cliente não encontrado.");
+  const currentVenc = client.vencimento ? new Date(client.vencimento) : new Date();
+  const newVenc = addDays(currentVenc, days);
+  client.vencimento = newVenc.toISOString().slice(0, 10);
+  if (client.status === "suspenso" || client.status === "cancelado" || client.status === "atrasado") {
+    client.status = "ativo";
+  }
+  saveClients(clients);
+  return client;
+}
+
+function cancelClientLicense(clientId) {
+  const clients = loadClients();
+  const client = clients.find(c => c.id === clientId);
+  if (!client) throw new Error("Cliente não encontrado.");
+  if (client.status === "cancelado") throw new Error("Licença já está cancelada.");
+  client.status = "cancelado";
+  saveClients(clients);
+  return client;
+}
+
 function enforceClientLicense() {
   const client = getCurrentClient();
   applyClientTheme(client);
@@ -152,16 +249,26 @@ function enforceClientLicense() {
     showLicenseBlock(client);
     return false;
   }
+  renderExpiryBanner();
   return true;
 }
 
+const _loginAttempts = new Map();
+
 async function signIn(email, password) {
+  const normalizedEmail = String(email).toLowerCase().trim();
+  const attempts = _loginAttempts.get(normalizedEmail) || 0;
+  if (attempts >= 5) {
+    throw new Error("Muitas tentativas. Aguarde 30 segundos.");
+  }
+
   if (window.BetLocalSupabase?.client?.auth) {
     const { data, error } = await window.BetLocalSupabase.client.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password
     });
     if (!error && data?.user) {
+      _loginAttempts.delete(normalizedEmail);
       const profile = await window.BetLocalSupabase.fetchCurrentProfile?.();
       const client = getClientById(profile?.cliente_id || getCurrentClient().id);
       const session = {
@@ -176,11 +283,16 @@ async function signIn(email, password) {
   }
 
   const client = loadClients().find((item) =>
-    item.usuarios?.some((user) => user.email === email && user.senha_demo === password)
+    item.usuarios?.some((user) => user.email.toLowerCase().trim() === normalizedEmail && user.senha_demo === password)
   );
-  const user = client?.usuarios?.find((item) => item.email === email && item.senha_demo === password);
-  if (!client || !user) throw new Error("Email ou senha invalidos.");
+  const user = client?.usuarios?.find((item) => item.email.toLowerCase().trim() === normalizedEmail && item.senha_demo === password);
+  if (!client || !user) {
+    _loginAttempts.set(normalizedEmail, attempts + 1);
+    setTimeout(() => _loginAttempts.delete(normalizedEmail), 30000);
+    throw new Error("Email ou senha invalidos.");
+  }
 
+  _loginAttempts.delete(normalizedEmail);
   const session = { email: user.email, role: user.role, cliente_id: client.id, provider: "local" };
   setSession(session);
   return session;
@@ -273,6 +385,8 @@ function removeUserFromClient(clientId, email) {
 
 window.BetLocalTenant = {
   plans: BETLOCAL_PLANS,
+  getPlanFeatures,
+  planHasFeature,
   loadClients,
   saveClients,
   getSession,
@@ -283,10 +397,13 @@ window.BetLocalTenant = {
   getClientById,
   daysRemaining,
   computedLicenseStatus,
+  getExpiryWarning,
   canAccessClient,
   applyClientTheme,
   enforceClientLicense,
   requireRoles,
   addUserToClient,
-  removeUserFromClient
+  removeUserFromClient,
+  renewClient,
+  cancelClientLicense
 };

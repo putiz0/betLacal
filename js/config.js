@@ -1,8 +1,10 @@
 const BETLOCAL_CONFIG = {
   // API backend: Supabase Edge Function (online) ou local
-  // Edge Function: https://uagwqerjcjjlnftytkqe.supabase.co/functions/v1/api-football
-  // Local (Python): http://localhost:8000
   backendUrl: "https://uagwqerjcjjlnftytkqe.supabase.co/functions/v1/api-football",
+  
+  // Supabase
+  supabaseUrl: "https://uagwqerjcjjlnftytkqe.supabase.co",
+  supabaseAnonKey: "sb_publishable_K6kMg8_wOUqzrpP3xziF2Q_PpSz4-Z6",
   
   // Modo de jogos: "auto" = tenta API real primeiro, "demo" = sempre fake, "api" = sempre tenta API
   gameMode: "auto",
@@ -57,4 +59,6 @@ window.BetLocalConfig = {
   setBackendUrl,
   getBackendUrl,
   saveConfig,
+  supabaseUrl: BETLOCAL_CONFIG.supabaseUrl,
+  supabaseAnonKey: BETLOCAL_CONFIG.supabaseAnonKey,
 };

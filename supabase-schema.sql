@@ -7,7 +7,7 @@ create table if not exists public.clientes (
   nome text not null,
   email text not null,
   plano text not null default 'teste'
-    check (plano in ('teste', 'padrao', 'personalizado')),
+    check (plano in ('teste', 'padrao', 'plus', 'master')),
   status text not null default 'teste'
     check (status in ('teste', 'ativo', 'atrasado', 'suspenso', 'cancelado')),
   inicio date not null default current_date,
@@ -44,7 +44,7 @@ add column if not exists settlement_note text,
 add column if not exists atualizado_em text;
 
 insert into public.clientes (id, nome, email, plano, status, nome_sistema)
-values ('cliente-local', 'Bet Local', 'dono@betlocal.local', 'personalizado', 'teste', 'Bet Local')
+values ('cliente-local', 'Bet Local', 'dono@betlocal.local', 'master', 'teste', 'Bet Local')
 on conflict (id) do nothing;
 
 update public."Apostas"

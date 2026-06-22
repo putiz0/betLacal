@@ -108,23 +108,24 @@
           return;
         }
 
+        const esc = (s) => window.BetLocal?.escapeHTML?.(s) || String(s || "").replace(/[<>]/g, "");
         container.innerHTML = jogos.slice(0, 6).map(jogo => {
           const isLive = jogo.status?.toLowerCase().includes("vivo") || jogo.status?.toLowerCase().includes("live");
           return `
             <div class="tv-game-card ${isLive ? 'live' : ''}">
               <div class="team">
-                <img src="${jogo.logo_casa || ''}" alt="" onerror="this.style.display='none'">
-                <span class="team-name">${jogo.time_casa}</span>
+                <img src="${esc(jogo.logo_casa)}" alt="" onerror="this.style.display='none'">
+                <span class="team-name">${esc(jogo.time_casa)}</span>
               </div>
               <div class="meta">
                 ${isLive ? '<span class="live-badge">● AO VIVO</span><br>' : ''}
-                <span class="score">${jogo.placar || "vs"}</span><br>
-                <span>${jogo.campeonato}</span><br>
-                <span>${jogo.data} ${jogo.hora}</span>
+                <span class="score">${esc(jogo.placar || "vs")}</span><br>
+                <span>${esc(jogo.campeonato)}</span><br>
+                <span>${esc(jogo.data)} ${esc(jogo.hora)}</span>
               </div>
               <div class="team away">
-                <img src="${jogo.logo_fora || ''}" alt="" onerror="this.style.display='none'">
-                <span class="team-name">${jogo.time_fora}</span>
+                <img src="${esc(jogo.logo_fora)}" alt="" onerror="this.style.display='none'">
+                <span class="team-name">${esc(jogo.time_fora)}</span>
               </div>
             </div>
           `;
@@ -144,8 +145,8 @@
         }
         box.innerHTML = recent.map(b => `
           <div class="tv-bet-item">
-            <span><span class="code">${b.codigo}</span> — ${b.selections?.[0]?.jogo || ""}</span>
-            <span style="color:#ff5a16; font-weight:700;">R$ ${Number(b.valor).toFixed(2)}</span>
+            <span><span class="code">${esc(b.codigo)}</span> — ${esc(b.selections?.[0]?.jogo || "")}</span>
+            <span style="color:#ff5a16; font-weight:700;">R$ ${esc(Number(b.valor).toFixed(2))}</span>
           </div>
         `).join("");
       }

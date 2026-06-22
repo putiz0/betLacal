@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
-API_FOOTBALL_KEY = os.getenv("API_FOOTBALL_KEY", "6512896b81baf1e82ea25425879bbc60").strip()
+API_FOOTBALL_KEY = (os.getenv("API_FOOTBALL_KEY") or "").strip()
 DEFAULT_TIMEZONE = "America/Sao_Paulo"
 PRE_MATCH_STATUSES = {"NS", "TBD"}
 FINISHED_STATUSES = {"FT", "AET", "PEN"}

@@ -5,69 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel do Operador - Bet Local</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/operador.css">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <style>
-    .operador-page { --sidebar-w: 260px; }
-    .operador-sidebar { width: var(--sidebar-w); }
-    .operador-content { margin-left: var(--sidebar-w); }
-    .operador-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 28px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
-    .operador-header h1 { margin:0; font-size:1.3rem; }
-    .operador-header .eyebrow { color: var(--orange); font-weight:700; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; }
-    .operador-section { padding: 24px 28px; }
-    .operador-card { background: var(--surface); border:1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-    .operador-card h2 { margin:0 0 14px; font-size:1.05rem; display:flex; align-items:center; gap:8px; }
-    .stats-row-op { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:20px; }
-    .stat-box-op { background: var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px; position:relative; overflow:hidden; }
-    .stat-box-op::before { content:""; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, var(--orange), var(--orange-2)); }
-    .stat-box-op .label { color:var(--muted); font-size:0.82rem; margin-bottom:6px; }
-    .stat-box-op .value { font-size:1.4rem; font-weight:800; }
-    .stat-box-op .value.green { color: var(--green); }
-    .stat-box-op .value.red { color: var(--red); }
-    .stat-box-op .value.orange { color: var(--orange); }
-    .stat-box-op .value.blue { color: #60a5fa; }
-    .filter-bar-op { display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
-    .filter-bar-op input, .filter-bar-op select { border:1px solid var(--line); border-radius:8px; background:#080c13; color:var(--text); padding:9px 12px; font-size:0.88rem; }
-    .table-wrap-op { overflow-x:auto; border-radius:8px; border:1px solid var(--line); }
-    .op-table { width:100%; border-collapse:collapse; min-width:980px; }
-    .op-table th, .op-table td { padding:12px 10px; border-bottom:1px solid var(--muted-line); text-align:left; font-size:0.87rem; vertical-align:top; }
-    .op-table th { color:var(--muted); font-size:0.74rem; text-transform:uppercase; letter-spacing:0.04em; background: rgba(0,0,0,0.2); }
-    .op-table tr:hover td { background: rgba(255,255,255,0.02); }
-    .bet-code-op { font-family: monospace; font-weight:800; color:var(--orange); font-size:0.95rem; }
-    .action-btns-op { display:flex; flex-wrap:wrap; gap:5px; }
-    .action-btns-op .btn { border:1px solid var(--line); border-radius:6px; background:#0b1018; color:var(--soft); padding:5px 10px; font-size:0.75rem; cursor:pointer; }
-    .action-btns-op .btn:hover { border-color:var(--orange); color:#fff; }
-    .action-btns-op .btn.primary { background: linear-gradient(135deg, var(--orange), var(--orange-2)); color:#fff; border:none; }
-    .two-col-op { display:grid; grid-template-columns: 1fr 320px; gap:20px; }
-    .insights-grid-op { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    .insight-item-op { background:#0b1018; border:1px solid var(--line); border-radius:8px; padding:12px; }
-    .insight-item-op span { color:var(--muted); font-size:0.78rem; }
-    .insight-item-op strong { display:block; margin-top:4px; font-size:1rem; }
-    .caixa-card { background: linear-gradient(135deg, #0f1220, #1a1f2e); border:1px solid var(--line); border-radius:12px; padding:20px; }
-    .caixa-status { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:20px; font-size:0.85rem; font-weight:700; }
-    .caixa-status.aberto { background:rgba(36,217,130,0.14); color:#a8f5ce; }
-    .caixa-status.fechado { background:rgba(255,95,95,0.14); color:#ffb6b6; }
-    .caixa-form { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:14px; }
-    .caixa-form label { display:grid; gap:5px; font-size:0.85rem; color:var(--soft); }
-    .caixa-form input { width:100%; border:1px solid var(--line); border-radius:8px; background:#080c13; color:var(--text); padding:10px 12px; }
-    .qr-display { text-align:center; padding:20px; }
-    .qr-display canvas, .qr-display img { max-width:200px; margin:0 auto; }
-    .qr-display .code-text { font-family:monospace; font-size:1.4rem; color:var(--orange); margin-top:10px; }
-    .cliente-form { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)) auto; gap:10px; align-items:end; margin-bottom:14px; }
-    .cliente-form label { display:grid; gap:5px; font-size:0.85rem; color:var(--soft); }
-    .cliente-form input { width:100%; border:1px solid var(--line); border-radius:8px; background:#080c13; color:var(--text); padding:9px 11px; }
-    .cliente-card { background:#0b1018; border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:8px; }
-    .cliente-card .nome { font-weight:700; color:var(--text); }
-    .cliente-card .info { color:var(--muted); font-size:0.82rem; }
-    .cliente-card .stats { display:flex; gap:12px; margin-top:6px; font-size:0.8rem; }
-    .cliente-card .stats span { color:var(--orange); }
-    .sankey-container { width:100%; height:400px; }
-    .limit-box { display:flex; align-items:center; gap:10px; background:#0b1018; border:1px solid var(--line); border-radius:8px; padding:12px; }
-    .limit-box input { width:120px; border:1px solid var(--line); border-radius:6px; background:#080c13; color:var(--text); padding:8px 10px; }
-    @media (max-width: 1180px) { .two-col-op { grid-template-columns: 1fr; } .stats-row-op { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-    @media (max-width: 860px) { .operador-content { margin-left:0; } .operador-sidebar { position:static; width:auto; height:auto; border-right:0; border-bottom:1px solid var(--line); } .stats-row-op { grid-template-columns: 1fr; } .cliente-form { grid-template-columns: 1fr 1fr; } .operador-section { padding:14px; } }
-    @media (max-width: 560px) { .cliente-form { grid-template-columns: 1fr; } .filter-bar-op { flex-direction:column; align-items:stretch; } .caixa-form { grid-template-columns: 1fr; } }
-  </style>
 </head>
 <body class="operador-page" data-page="operador">
   <div class="admin-layout">
@@ -83,6 +22,7 @@
         <a href="#clientes">👥 Clientes</a>
         <a href="#financas">📈 Finanças</a>
         <a href="tv.html" target="_blank">📺 Modo TV</a>
+        <a href="admin-master.html" data-role="super_admin" style="display:none;">🔐 Painel do Dono</a>
         <a href="index.html">🛒 Tela de Vendas</a>
         <button id="operador-logout" class="nav-button" type="button">🚪 Sair</button>
       </nav>
@@ -103,7 +43,6 @@
       <!-- Dashboard -->
       <section class="operador-section" id="dashboard">
         <div class="stats-row-op" id="operador-stats"></div>
-
         <div class="two-col-op">
           <div class="operador-card">
             <h2>📈 Estatísticas de Vendas</h2>
@@ -136,6 +75,7 @@
             </select>
             <input id="filter-date-bilhete" type="date">
             <button class="ghost-btn" id="limpar-bilhete">Limpar</button>
+            <button class="ghost-btn" id="exportar-csv-op" style="border-color:var(--green);color:var(--green);">📥 CSV</button>
           </div>
           <div class="table-wrap-op">
             <table class="op-table">
@@ -204,22 +144,25 @@
         <div class="stats-row-op" id="financas-stats"></div>
         <div class="two-col-op">
           <div class="operador-card">
-            <h2>🔗 Fluxo de Dinheiro (Sankey)</h2>
-            <div class="sankey-container">
-              <canvas id="sankey-chart"></canvas>
-            </div>
+            <h2>📊 Movimento dos Últimos 7 Dias</h2>
+            <div class="chart-bars" id="chart-financas-semana"></div>
           </div>
           <div class="operador-card">
-            <h2>⚙️ Configurações</h2>
-            <div class="limit-box">
-              <span>Limite máximo por bilhete:</span>
-              <input id="limite-aposta" type="number" step="0.01" min="1" value="1000">
-              <button class="btn primary" id="salvar-limite">Salvar</button>
+            <h2>🍩 Distribuição por Status</h2>
+            <div class="donut-wrapper" id="donut-status">
+              <div class="donut-center">0</div>
             </div>
-            <div style="margin-top:14px; color:var(--muted); font-size:0.85rem;">
-              <p>💡 O limite de aposta ajuda a controlar o risco da casa.</p>
-              <p>📱 O QR Code no bilhete permite ao cliente acompanhar em tempo real.</p>
-            </div>
+            <div class="donut-legend" id="donut-legend"></div>
+          </div>
+        </div>
+        <div class="two-col-op">
+          <div class="operador-card">
+            <h2>🏆 Top Clientes</h2>
+            <div id="top-clientes"></div>
+          </div>
+          <div class="operador-card">
+            <h2>📅 Últimos Fechamentos de Caixa</h2>
+            <div id="ultimos-fechamentos"></div>
           </div>
         </div>
       </section>
@@ -246,8 +189,13 @@
   <script src="js/config.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/tenant.js"></script>
+  <script src="js/shared.js"></script>
   <script src="js/league-mapping.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/ui-utils.js"></script>
+  <script src="js/caixa.js"></script>
+  <script src="js/crm.js"></script>
   <script src="js/operador.js"></script>
 </body>
 </html>

@@ -1,0 +1,30 @@
+{
+  "name": "projetobetlocal",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000b\u0000e\u0000t\u0000L\u0000a\u0000c\u0000a\u0000l\u0000\r\u0000 \u0000",
+  "main": "scrape-placar.js",
+  "scripts": {
+    "test": "jest",
+    "scrape": "node scrape-placar.js",
+    "scrape:commit": "powershell -File scripts/run-scraper.ps1 -Commit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/putiz0/betLacal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/putiz0/betLacal/issues"
+  },
+  "homepage": "https://github.com/putiz0/betLacal#readme",
+  "dependencies": {
+    "playwright": "^1.61.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1"
+  }
+}

@@ -1,11 +1,4 @@
-const OPERADOR_STORAGE = {
-  caixa: "betlocal.operador.caixa",
-  turnos: "betlocal.operador.turnos",
-  clientes: "betlocal.operador.clientes",
-  limite: "betlocal.operador.limite",
-};
-
-const LIMITE_PADRAO = 1000;
+const ITENS_POR_PAGINA_OP = 50;
 
 document.addEventListener("DOMContentLoaded", () => {
   window.BetLocalTenant.requireRoles(["operador", "dono", "super_admin"], initOperador);
@@ -15,46 +8,44 @@ function initOperador(session) {
   const userEl = document.getElementById("operador-user");
   if (userEl && session) userEl.textContent = `👤 ${session.email}`;
 
+  document.querySelectorAll("[data-role]").forEach(el => {
+    el.style.display = el.dataset.role === session?.role ? "" : "none";
+  });
+
   document.getElementById("operador-logout")?.addEventListener("click", () => {
     window.BetLocalTenant.signOut();
   });
 
-  // Caixa
-  initCaixa();
-
-  // Bilhetes
+  initCaixaForm("caixa-form", "caixa-fechar-form", {
+    btnAbrirId: "btn-abrir-caixa",
+    btnFecharId: "btn-fechar-caixa",
+    indicatorId: "caixa-indicator",
+    caixaInfoId: "caixa-info",
+    historicoId: "historico-caixa",
+  });
   initBilhetes();
-
-  // Clientes
-  initClientes();
-
-  // Finanças
-  initFinancas();
-
-  // Configurações
-  initConfiguracoes();
-
-  // QR Modal
+  initClientesForm("cliente-form", "lista-clientes", "cliente-detalhes", "cliente-historico-conteudo");
   initQRModal();
 
-  // Render inicial
   renderDashboard();
-  window.addEventListener("betlocal:history-updated", renderDashboard);
+  initFinancas();
+  window.addEventListener("betlocal:history-updated", () => {
+    renderDashboard();
+    initFinancas();
+  });
 }
-
-/* ========== DASHBOARD ========== */
 
 function renderDashboard() {
   const history = window.BetLocal.getBetHistory();
   const today = new Date().toISOString().slice(0, 10);
   const todayBets = history.filter(b => b.data_iso?.slice(0, 10) === today);
 
-  renderStats(todayBets, history);
-  renderInsights(todayBets, history);
-  updateCaixaIndicator();
+  renderStatsOp(todayBets, history);
+  renderInsightsOp(todayBets, history);
+  updateCaixaIndicator("caixa-indicator");
 }
 
-function renderStats(todayBets, allBets) {
+function renderStatsOp(todayBets, allBets) {
   const stats = document.getElementById("operador-stats");
   if (!stats) return;
 
@@ -82,7 +73,7 @@ function renderStats(todayBets, allBets) {
   `;
 }
 
-function renderInsights(todayBets, allBets) {
+function renderInsightsOp(todayBets, allBets) {
   const insights = document.getElementById("operador-insights");
   if (!insights) return;
 
@@ -103,201 +94,14 @@ function renderInsights(todayBets, allBets) {
   `;
 }
 
-/* ========== CAIXA ========== */
-
-function initCaixa() {
-  const caixa = getCaixa();
-  const formAbrir = document.getElementById("caixa-form");
-  const formFechar = document.getElementById("caixa-fechar-form");
-  const btnAbrir = document.getElementById("btn-abrir-caixa");
-  const btnFechar = document.getElementById("btn-fechar-caixa");
-
-  if (caixa?.aberto) {
-    if (formAbrir) formAbrir.style.display = "none";
-    if (formFechar) formFechar.style.display = "grid";
-    if (btnAbrir) btnAbrir.style.display = "none";
-    if (btnFechar) btnFechar.style.display = "block";
-  } else {
-    if (formAbrir) formAbrir.style.display = "grid";
-    if (formFechar) formFechar.style.display = "none";
-    if (btnAbrir) btnAbrir.style.display = "block";
-    if (btnFechar) btnFechar.style.display = "none";
-  }
-
-  formAbrir?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    const valorInicial = Number(data.get("valor_inicial")) || 0;
-    const obs = String(data.get("obs") || "");
-
-    const novoCaixa = {
-      aberto: true,
-      valorInicial,
-      obs,
-      abertoEm: new Date().toISOString(),
-      abertoEmLocal: new Date().toLocaleString("pt-BR"),
-      operador: window.BetLocalTenant.getSession()?.email || "operador"
-    };
-
-    saveCaixa(novoCaixa);
-    addTurno({ tipo: "abertura", valor: valorInicial, obs, data: novoCaixa.abertoEmLocal });
-
-    if (formAbrir) formAbrir.style.display = "none";
-    if (formFechar) formFechar.style.display = "grid";
-    if (btnAbrir) btnAbrir.style.display = "none";
-    if (btnFechar) btnFechar.style.display = "block";
-    updateCaixaIndicator();
-    renderCaixaInfo();
-    renderHistoricoCaixa();
-    alert(`✅ Caixa aberto com R$ ${valorInicial.toFixed(2)}`);
-  });
-
-  formFechar?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    const valorFinal = Number(data.get("valor_final")) || 0;
-    const obsFechamento = String(data.get("obs_fechamento") || "");
-    const caixaAtual = getCaixa();
-
-    const history = window.BetLocal.getBetHistory();
-    const today = new Date().toISOString().slice(0, 10);
-    const todayBets = history.filter(b => b.data_iso?.slice(0, 10) === today);
-    const totals = getFinancialTotals(todayBets);
-
-    const valorEsperado = caixaAtual.valorInicial + totals.totalStaked - totals.prizes;
-    const diferenca = valorFinal - valorEsperado;
-
-    const fechamento = {
-      tipo: "fechamento",
-      valorInicial: caixaAtual.valorInicial,
-      valorFinal,
-      valorEsperado,
-      diferenca,
-      obs: obsFechamento,
-      data: new Date().toLocaleString("pt-BR"),
-      totalStaked: totals.totalStaked,
-      totalPrizes: totals.prizes,
-      bilhetes: todayBets.length
-    };
-
-    addTurno(fechamento);
-    saveCaixa({ aberto: false });
-
-    if (formAbrir) formAbrir.style.display = "grid";
-    if (formFechar) formFechar.style.display = "none";
-    if (btnAbrir) btnAbrir.style.display = "block";
-    if (btnFechar) btnFechar.style.display = "none";
-    updateCaixaIndicator();
-    renderCaixaInfo();
-    renderHistoricoCaixa();
-
-    const relatorio = `
-📊 FECHAMENTO DE CAIXA
-━━━━━━━━━━━━━━━━━━━━━━
-📅 Data: ${fechamento.data}
-👤 Operador: ${caixaAtual.operador}
-
-💰 Valor Inicial: R$ ${caixaAtual.valorInicial.toFixed(2)}
-📥 Entradas: R$ ${totals.totalStaked.toFixed(2)}
-📤 Saídas: R$ ${totals.prizes.toFixed(2)}
-📊 Esperado: R$ ${valorEsperado.toFixed(2)}
-📊 Contado: R$ ${valorFinal.toFixed(2)}
-📊 Diferença: R$ ${diferenca.toFixed(2)} ${diferenca >= 0 ? "(sobra)" : "(quebra)"}
-
-🎫 Bilhetes: ${todayBets.length}
-🏆 Lucro/Prejuízo: R$ ${totals.net.toFixed(2)}
-    `;
-    alert(relatorio);
-  });
-
-  btnAbrir?.addEventListener("click", () => {
-    document.getElementById("caixa-form")?.scrollIntoView({ behavior: "smooth" });
-  });
-
-  btnFechar?.addEventListener("click", () => {
-    document.getElementById("caixa-fechar-form")?.scrollIntoView({ behavior: "smooth" });
-  });
-
-  renderCaixaInfo();
-  renderHistoricoCaixa();
-}
-
-function getCaixa() {
-  try {
-    return JSON.parse(localStorage.getItem(OPERADOR_STORAGE.caixa) || "null");
-  } catch { return null; }
-}
-
-function saveCaixa(caixa) {
-  localStorage.setItem(OPERADOR_STORAGE.caixa, JSON.stringify(caixa));
-}
-
-function getTurnos() {
-  try {
-    return JSON.parse(localStorage.getItem(OPERADOR_STORAGE.turnos) || "[]");
-  } catch { return []; }
-}
-
-function addTurno(turno) {
-  const turnos = getTurnos();
-  turnos.unshift(turno);
-  localStorage.setItem(OPERADOR_STORAGE.turnos, JSON.stringify(turnos));
-}
-
-function updateCaixaIndicator() {
-  const indicator = document.getElementById("caixa-indicator");
-  if (!indicator) return;
-  const caixa = getCaixa();
-  if (caixa?.aberto) {
-    indicator.textContent = "🟢 Caixa Aberto";
-    indicator.className = "caixa-status aberto";
-  } else {
-    indicator.textContent = "🔴 Caixa Fechado";
-    indicator.className = "caixa-status fechado";
-  }
-}
-
-function renderCaixaInfo() {
-  const box = document.getElementById("caixa-info");
-  if (!box) return;
-  const caixa = getCaixa();
-  if (caixa?.aberto) {
-    box.innerHTML = `
-      <div><strong>🟢 Caixa aberto desde:</strong> ${caixa.abertoEmLocal}</div>
-      <div><strong>💵 Valor inicial:</strong> ${window.BetLocal.currency.format(caixa.valorInicial)}</div>
-      <div><strong>👤 Operador:</strong> ${window.BetLocal.escapeHTML(caixa.operador)}</div>
-      ${caixa.obs ? `<div><strong>📝 Obs:</strong> ${window.BetLocal.escapeHTML(caixa.obs)}</div>` : ""}
-    `;
-  } else {
-    box.innerHTML = `<div>🔴 Nenhum caixa aberto. Abra um turno para começar a operar.</div>`;
-  }
-}
-
-function renderHistoricoCaixa() {
-  const box = document.getElementById("historico-caixa");
-  if (!box) return;
-  const turnos = getTurnos().slice(0, 10);
-  if (!turnos.length) {
-    box.innerHTML = `<div style="color:var(--muted); text-align:center; padding:20px;">Nenhum turno registrado.</div>`;
-    return;
-  }
-  box.innerHTML = turnos.map(t => `
-    <div class="cliente-card">
-      <div class="nome">${t.tipo === "abertura" ? "🔓 Abertura" : "🔒 Fechamento"} — ${t.data}</div>
-      <div class="info">Valor: ${window.BetLocal.currency.format(t.valor || t.valorInicial || 0)}</div>
-      ${t.diferenca !== undefined ? `<div class="stats"><span>Diferença: ${window.BetLocal.currency.format(t.diferenca)}</span><span>Bilhetes: ${t.bilhetes || 0}</span></div>` : ""}
-    </div>
-  `).join("");
-}
-
-/* ========== BILHETES ========== */
+let opPaginaAtual = 1;
 
 function initBilhetes() {
   const searchInput = document.getElementById("buscar-bilhete");
   const statusFilter = document.getElementById("filter-status-bilhete");
   const dateFilter = document.getElementById("filter-date-bilhete");
 
-  const applyFilters = () => renderBilhetes();
+  const applyFilters = debounce(() => { opPaginaAtual = 1; renderBilhetes(); }, 250);
   searchInput?.addEventListener("input", applyFilters);
   statusFilter?.addEventListener("change", applyFilters);
   dateFilter?.addEventListener("change", applyFilters);
@@ -305,7 +109,23 @@ function initBilhetes() {
     searchInput.value = "";
     statusFilter.value = "all";
     dateFilter.value = "";
+    opPaginaAtual = 1;
     renderBilhetes();
+  });
+
+  document.getElementById("exportar-csv-op")?.addEventListener("click", () => {
+    const history = window.BetLocal.getBetHistory();
+    const data = history.map(b => ({
+      Codigo: b.codigo,
+      Data: b.data,
+      Status: b.status,
+      Valor: b.valor,
+      Retorno: b.retorno,
+      Odd: b.odd_total,
+      Cliente: b.cliente_nome || "",
+      Telefone: b.cliente_telefone || "",
+    }));
+    exportCSV(data, `bilhetes-${new Date().toISOString().slice(0, 10)}.csv`);
   });
 
   window.addEventListener("betlocal:history-updated", renderBilhetes);
@@ -336,12 +156,17 @@ function renderBilhetes() {
     history = history.filter(b => b.data_iso?.slice(0, 10) === filterDate);
   }
 
+  const totalPaginas = Math.max(1, Math.ceil(history.length / ITENS_POR_PAGINA_OP));
+  if (opPaginaAtual > totalPaginas) opPaginaAtual = totalPaginas;
+  const inicio = (opPaginaAtual - 1) * ITENS_POR_PAGINA_OP;
+  const pagina = history.slice(inicio, inicio + ITENS_POR_PAGINA_OP);
+
   if (!history.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:30px;">Nenhum bilhete encontrado.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><div class="empty-text">Nenhum bilhete encontrado.</div></td></tr>`;
     return;
   }
 
-  tbody.innerHTML = history.map(bet => `
+  tbody.innerHTML = pagina.map(bet => `
     <tr>
       <td><span class="bet-code-op">${window.BetLocal.escapeHTML(bet.codigo)}</span></td>
       <td>${window.BetLocal.escapeHTML(bet.data)}</td>
@@ -359,10 +184,27 @@ function renderBilhetes() {
         </div>
       </td>
     </tr>
-  `).join("");
+  `).join("") + `
+    <tr class="pagination-row">
+      <td colspan="8">
+        <div class="pagination">
+          <button class="page-prev" ${opPaginaAtual <= 1 ? "disabled" : ""}>‹ Anterior</button>
+          <span class="page-info">Página ${opPaginaAtual} de ${totalPaginas} (${history.length} registros)</span>
+          <button class="page-next" ${opPaginaAtual >= totalPaginas ? "disabled" : ""}>Próxima ›</button>
+        </div>
+      </td>
+    </tr>
+  `;
 
   tbody.querySelectorAll("[data-action]").forEach(btn => {
     btn.addEventListener("click", () => handleBilheteAction(btn.dataset.action, btn.dataset.code));
+  });
+
+  tbody.querySelector(".page-prev")?.addEventListener("click", () => {
+    if (opPaginaAtual > 1) { opPaginaAtual--; renderBilhetes(); }
+  });
+  tbody.querySelector(".page-next")?.addEventListener("click", () => {
+    if (opPaginaAtual < totalPaginas) { opPaginaAtual++; renderBilhetes(); }
   });
 }
 
@@ -372,18 +214,10 @@ function handleBilheteAction(action, code) {
   if (!bet) return;
 
   switch (action) {
-    case "qr":
-      showQRModal(bet);
-      break;
-    case "whatsapp":
-      shareWhatsApp(bet);
-      break;
-    case "telegram":
-      shareTelegram(bet);
-      break;
-    case "print":
-      printBilhete(bet);
-      break;
+    case "qr": showQRModal(bet); break;
+    case "whatsapp": shareWhatsApp(bet); break;
+    case "telegram": shareTelegram(bet); break;
+    case "print": printBilhete(bet); break;
   }
 }
 
@@ -407,6 +241,19 @@ function showQRModal(bet) {
   document.getElementById("qr-fechar").onclick = () => modal.style.display = "none";
 
   modal.style.display = "grid";
+  modal.querySelector("button")?.focus();
+}
+
+function initQRModal() {
+  const modal = document.getElementById("modal-qr");
+  modal?.addEventListener("click", (e) => {
+    if (e.target.id === "modal-qr") e.target.style.display = "none";
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal?.style.display === "grid") {
+      modal.style.display = "none";
+    }
+  });
 }
 
 function shareWhatsApp(bet) {
@@ -420,7 +267,7 @@ function shareTelegram(bet) {
 }
 
 function shareInstagram(bet) {
-  alert("📸 Para Instagram:\n1. Tire print do QR Code\n2. Poste nos Stories ou Direct\n\nOu copie o código: " + bet.codigo);
+  showToast(`📸 Para Instagram: tire print do QR Code e poste nos Stories. Código: ${bet.codigo}`, "info", 6000);
 }
 
 function shareFacebook(bet) {
@@ -469,307 +316,180 @@ function printBilhete(bet) {
   printWindow.print();
 }
 
-function initQRModal() {
-  document.getElementById("modal-qr")?.addEventListener("click", (e) => {
-    if (e.target.id === "modal-qr") e.target.style.display = "none";
-  });
-}
-
-/* ========== CLIENTES ========== */
-
-function initClientes() {
-  const form = document.getElementById("cliente-form");
-  form?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    const cliente = {
-      id: `cliente-${Date.now().toString(36)}`,
-      nome: String(data.get("nome")).trim(),
-      telefone: String(data.get("telefone") || "").trim(),
-      apelido: String(data.get("apelido") || "").trim(),
-      cadastradoEm: new Date().toLocaleString("pt-BR"),
-    };
-
-    const clientes = getClientes();
-    if (clientes.some(c => c.telefone && c.telefone === cliente.telefone)) {
-      alert("Já existe um cliente com este telefone.");
-      return;
-    }
-
-    clientes.push(cliente);
-    saveClientes(clientes);
-    e.currentTarget.reset();
-    renderClientes();
-    alert(`✅ Cliente "${cliente.nome}" cadastrado!`);
-  });
-
-  renderClientes();
-}
-
-function getClientes() {
-  try {
-    return JSON.parse(localStorage.getItem(OPERADOR_STORAGE.clientes) || "[]");
-  } catch { return []; }
-}
-
-function saveClientes(clientes) {
-  localStorage.setItem(OPERADOR_STORAGE.clientes, JSON.stringify(clientes));
-}
-
-function renderClientes() {
-  const box = document.getElementById("lista-clientes");
-  if (!box) return;
-  const clientes = getClientes();
-
-  if (!clientes.length) {
-    box.innerHTML = `<div style="color:var(--muted); text-align:center; padding:20px;">Nenhum cliente cadastrado.</div>`;
-    return;
-  }
-
-  const history = window.BetLocal.getBetHistory();
-
-  box.innerHTML = clientes.map(c => {
-    const apostas = history.filter(b => b.cliente_id === c.id);
-    const totalApostado = apostas.reduce((sum, b) => sum + Number(b.valor || 0), 0);
-    return `
-      <div class="cliente-card" style="cursor:pointer;" data-cliente-id="${window.BetLocal.escapeHTML(c.id)}">
-        <div class="nome">${window.BetLocal.escapeHTML(c.nome)} ${c.apelido ? `(${window.BetLocal.escapeHTML(c.apelido)})` : ""}</div>
-        <div class="info">📞 ${window.BetLocal.escapeHTML(c.telefone || "—")} | Cadastrado: ${c.cadastradoEm}</div>
-        <div class="stats">
-          <span>🎫 ${apostas.length} bilhetes</span>
-          <span>💰 ${window.BetLocal.currency.format(totalApostado)}</span>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  box.querySelectorAll("[data-cliente-id]").forEach(card => {
-    card.addEventListener("click", () => showClienteDetalhes(card.dataset.clienteId));
-  });
-}
-
-function showClienteDetalhes(clienteId) {
-  const clientes = getClientes();
-  const cliente = clientes.find(c => c.id === clienteId);
-  if (!cliente) return;
-
-  const history = window.BetLocal.getBetHistory();
-  const apostas = history.filter(b => b.cliente_id === clienteId);
-  const totalApostado = apostas.reduce((sum, b) => sum + Number(b.valor || 0), 0);
-  const totalRetorno = apostas.reduce((sum, b) => sum + Number(b.retorno || 0), 0);
-  const ganhos = apostas.filter(b => b.status === "Ganha" || b.status === "Paga").length;
-  const perdas = apostas.filter(b => b.status === "Perdida").length;
-
-  const detalhes = document.getElementById("cliente-detalhes");
-  const conteudo = document.getElementById("cliente-historico-conteudo");
-  if (!detalhes || !conteudo) return;
-
-  conteudo.innerHTML = `
-    <div style="margin-bottom:16px;">
-      <h3>${window.BetLocal.escapeHTML(cliente.nome)}</h3>
-      <p style="color:var(--muted);">📞 ${window.BetLocal.escapeHTML(cliente.telefone || "—")}</p>
-    </div>
-    <div class="stats-row-op" style="margin-bottom:16px;">
-      <div class="stat-box-op"><div class="label">Bilhetes</div><div class="value">${apostas.length}</div></div>
-      <div class="stat-box-op"><div class="label">Total Apostado</div><div class="value orange">${window.BetLocal.currency.format(totalApostado)}</div></div>
-      <div class="stat-box-op"><div class="label">Ganhos</div><div class="value green">${ganhos}</div></div>
-      <div class="stat-box-op"><div class="label">Perdas</div><div class="value red">${perdas}</div></div>
-    </div>
-    <div class="table-wrap-op">
-      <table class="op-table">
-        <thead><tr><th>Código</th><th>Data</th><th>Valor</th><th>Retorno</th><th>Status</th></tr></thead>
-        <tbody>
-          ${apostas.map(b => `
-            <tr>
-              <td><span class="bet-code-op">${window.BetLocal.escapeHTML(b.codigo)}</span></td>
-              <td>${window.BetLocal.escapeHTML(b.data)}</td>
-              <td>${window.BetLocal.currency.format(Number(b.valor))}</td>
-              <td>${window.BetLocal.currency.format(Number(b.retorno))}</td>
-              <td><span class="status ${statusClass(b.status)}">${window.BetLocal.escapeHTML(b.status)}</span></td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  detalhes.style.display = "block";
-  detalhes.scrollIntoView({ behavior: "smooth" });
-}
-
 /* ========== FINANÇAS ========== */
 
 function initFinancas() {
-  renderFinancas();
-  window.addEventListener("betlocal:history-updated", renderFinancas);
+  renderFinancasStats();
+  renderChartSemana();
+  renderDonutStatus();
+  renderTopClientes();
+  renderUltimosFechamentos();
 }
 
-function renderFinancas() {
+function renderFinancasStats() {
+  const el = document.getElementById("financas-stats");
+  if (!el) return;
   const history = window.BetLocal.getBetHistory();
-  const today = new Date().toISOString().slice(0, 10);
-  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const totals = getFinancialTotals(history);
+  const ganhas = history.filter(b => b.status === "Ganha" || b.status === "Paga");
+  const pagas = history.filter(b => b.status === "Paga");
+  const premiosPagos = pagas.reduce((s, b) => s + Number(b.retorno || 0), 0);
+  const aReceber = ganhas.reduce((s, b) => s + Number(b.retorno || 0), 0) - premiosPagos;
 
-  const todayBets = history.filter(b => b.data_iso?.slice(0, 10) === today);
-  const weekBets = history.filter(b => b.data_iso >= weekAgo);
-  const monthBets = history.filter(b => b.data_iso >= monthAgo);
+  el.innerHTML = `
+    <article class="stat-box-op">
+      <div class="label">💰 Total Entradas</div>
+      <div class="value orange">${window.BetLocal.currency.format(totals.totalStaked)}</div>
+    </article>
+    <article class="stat-box-op">
+      <div class="label">📊 Lucro Líquido</div>
+      <div class="value ${totals.net >= 0 ? 'green' : 'red'}">${window.BetLocal.currency.format(totals.net)}</div>
+    </article>
+    <article class="stat-box-op">
+      <div class="label">🏆 Prêmios Pagos</div>
+      <div class="value ${premiosPagos > 0 ? 'red' : 'green'}">${window.BetLocal.currency.format(premiosPagos)}</div>
+    </article>
+    <article class="stat-box-op">
+      <div class="label">⏳ Prêmios a Receber</div>
+      <div class="value ${aReceber > 0 ? 'blue' : 'green'}">${window.BetLocal.currency.format(aReceber)}</div>
+    </article>
+  `;
+}
 
-  const todayTotals = getFinancialTotals(todayBets);
-  const weekTotals = getFinancialTotals(weekBets);
-  const monthTotals = getFinancialTotals(monthBets);
+function renderChartSemana() {
+  const container = document.getElementById("chart-financas-semana");
+  if (!container) return;
 
-  const stats = document.getElementById("financas-stats");
-  if (stats) {
-    stats.innerHTML = `
-      <article class="stat-box-op"><div class="label">💸 Perdido (lucro casa) — Hoje</div><div class="value green">${window.BetLocal.currency.format(todayTotals.grossProfit)}</div></article>
-      <article class="stat-box-op"><div class="label">🏆 Falta Pagar — Hoje</div><div class="value red">${window.BetLocal.currency.format(todayTotals.prizes)}</div></article>
-      <article class="stat-box-op"><div class="label">📂 Em Aberto — Hoje</div><div class="value blue">${window.BetLocal.currency.format(todayTotals.exposure)}</div></article>
-      <article class="stat-box-op"><div class="label">📊 Lucro/Prejuízo — Semana</div><div class="value ${weekTotals.net >= 0 ? 'green' : 'red'}">${window.BetLocal.currency.format(weekTotals.net)}</div></article>
-    `;
+  const history = window.BetLocal.getBetHistory();
+  const dias = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const label = d.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" });
+    const dayBets = history.filter(b => (b.data_iso || "").slice(0, 10) === key);
+    const total = dayBets.reduce((s, b) => s + Number(b.valor || 0), 0);
+    const lucro = getFinancialTotals(dayBets).net;
+    dias.push({ label, total, lucro });
   }
 
-  renderSankey(todayBets, weekBets, monthBets);
+  const maxVal = Math.max(...dias.map(d => Math.abs(d.total)), 1);
+  const cores = ["#ff5a16", "#24d982"];
+
+  container.innerHTML = dias.map(d => {
+    const h = Math.max(4, (d.total / maxVal) * 140);
+    const lucroH = Math.max(2, (Math.abs(d.lucro) / maxVal) * 140);
+    return `<div class="chart-bar-group">
+      <div style="display:flex;gap:3px;align-items:flex-end;height:140px;">
+        <div class="chart-bar" style="height:${h}px;background:${cores[0]};width:50%;" title="Entradas: R$ ${d.total.toFixed(2)}"></div>
+        <div class="chart-bar" style="height:${lucroH}px;background:${d.lucro >= 0 ? cores[1] : '#ff5f5f'};width:50%;" title="${d.lucro >= 0 ? 'Lucro' : 'Prejuízo'}: R$ ${d.lucro.toFixed(2)}"></div>
+      </div>
+      <span class="chart-bar-label">${d.label}</span>
+    </div>`;
+  }).join("");
 }
 
-function renderSankey(todayBets, weekBets, monthBets) {
-  const canvas = document.getElementById("sankey-chart");
-  if (!canvas || typeof Chart === "undefined") return;
+function renderDonutStatus() {
+  const wrapper = document.getElementById("donut-status");
+  const legend = document.getElementById("donut-legend");
+  if (!wrapper || !legend) return;
 
-  const period = document.getElementById("sankey-period")?.value || "today";
-  let bets = todayBets;
-  if (period === "week") bets = weekBets;
-  if (period === "month") bets = monthBets;
+  const history = window.BetLocal.getBetHistory();
+  const statuses = ["Aberta", "Ganha", "Perdida", "Paga", "Cancelada"];
+  const cores = { Aberta: "#60a5fa", Ganha: "#24d982", Perdida: "#ff5f5f", Paga: "#34d399", Cancelada: "#8b92a8" };
+  const labels = { Aberta: "Abertas", Ganha: "Ganhas", Perdida: "Perdidas", Paga: "Pagas", Cancelada: "Canceladas" };
 
-  const totals = getFinancialTotals(bets);
-  const ganhos = bets.filter(b => b.status === "Ganha" || b.status === "Paga").length;
-  const perdas = bets.filter(b => b.status === "Perdida").length;
-  const abertos = bets.filter(b => b.status === "Aberta").length;
-  const cancelados = bets.filter(b => b.status === "Cancelada").length;
+  const counts = {};
+  let total = 0;
+  statuses.forEach(s => { counts[s] = history.filter(b => b.status === s).length; total += counts[s]; });
 
-  // Destruir gráfico anterior se existir
-  if (window.sankeyChartInstance) {
-    window.sankeyChartInstance.destroy();
-  }
+  const center = wrapper.querySelector(".donut-center");
+  if (center) center.textContent = total;
 
-  window.sankeyChartInstance = new Chart(canvas, {
-    type: "bar",
-    data: {
-      labels: ["Total Apostado", "Perdeu (Lucro)", "Ganhou (Saída)", "Em Aberto", "Cancelado"],
-      datasets: [{
-        label: "Fluxo de Dinheiro (R$)",
-        data: [totals.totalStaked, totals.grossProfit, totals.prizes, totals.exposure, 0],
-        backgroundColor: [
-          "rgba(255, 90, 22, 0.7)",
-          "rgba(36, 217, 130, 0.7)",
-          "rgba(255, 95, 95, 0.7)",
-          "rgba(96, 165, 250, 0.7)",
-          "rgba(156, 168, 186, 0.3)"
-        ],
-        borderColor: [
-          "#ff5a16",
-          "#24d982",
-          "#ff5f5f",
-          "#60a5fa",
-          "#9ca8ba"
-        ],
-        borderWidth: 2,
-        borderRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `R$ ${ctx.raw.toFixed(2)}`
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: (v) => `R$ ${v.toFixed(0)}`,
-            color: "#9ca8ba"
-          },
-          grid: { color: "rgba(255,255,255,0.05)" }
-        },
-        x: {
-          ticks: { color: "#9ca8ba" },
-          grid: { display: false }
-        }
-      }
-    }
-  });
-}
+  const parts = statuses.filter(s => counts[s] > 0);
+  const totalSlice = parts.reduce((acc, s) => acc + counts[s], 0) || 1;
+  let conic = parts.map((s, i) => {
+    const pct = (counts[s] / totalSlice) * 360;
+    const start = parts.slice(0, i).reduce((acc, p) => acc + (counts[p] / totalSlice) * 360, 0);
+    return `${cores[s]} ${start}deg ${start + pct}deg`;
+  }).join(",");
 
-/* ========== CONFIGURAÇÕES ========== */
+  wrapper.style.background = total > 0 ? `conic-gradient(${conic})` : "var(--muted-line)";
+  wrapper.style.borderRadius = "50%";
 
-function initConfiguracoes() {
-  const input = document.getElementById("limite-aposta");
-  const saved = getLimite();
-  if (input) input.value = saved;
-
-  document.getElementById("salvar-limite")?.addEventListener("click", () => {
-    const valor = Number(input?.value) || LIMITE_PADRAO;
-    localStorage.setItem(OPERADOR_STORAGE.limite, JSON.stringify(valor));
-    alert(`✅ Limite de aposta salvo: R$ ${valor.toFixed(2)}`);
-  });
-}
-
-function getLimite() {
-  try {
-    return JSON.parse(localStorage.getItem(OPERADOR_STORAGE.limite) || String(LIMITE_PADRAO));
-  } catch { return LIMITE_PADRAO; }
-}
-
-/* ========== UTILS ========== */
-
-function getFinancialTotals(history) {
-  return history.reduce((acc, bet) => {
-    const value = Number(bet.valor || 0);
-    const returnValue = Number(bet.retorno || 0);
-    if (bet.status !== "Cancelada") acc.totalStaked += value;
-    if (bet.status === "Perdida") acc.grossProfit += value;
-    if (bet.status === "Ganha" || bet.status === "Paga") acc.prizes += returnValue;
-    if (bet.status === "Aberta" || bet.status === "Ganha") acc.exposure += returnValue;
-    acc.net = acc.grossProfit - acc.prizes;
-    return acc;
-  }, { totalStaked: 0, grossProfit: 0, prizes: 0, exposure: 0, net: 0 });
-}
-
-function mostCommon(values) {
-  const counts = values.filter(Boolean).reduce((acc, v) => {
-    acc[v] = (acc[v] || 0) + 1;
-    return acc;
-  }, {});
-  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
-}
-
-function statusClass(status) {
-  return String(status || "Aberta")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, "-");
-}
-
-function renderSelectionsSummary(bet) {
-  return (bet.selections || []).map(item => `
-    <div>
-      <strong>${window.BetLocal.escapeHTML(item.jogo)}</strong><br>
-      <small>${window.BetLocal.escapeHTML(item.mercado)}: ${window.BetLocal.escapeHTML(item.opcao)} @ ${window.BetLocal.formatOdd(item.odd)}</small>
+  legend.innerHTML = parts.map(s => `
+    <div class="donut-legend-item">
+      <span class="donut-legend-dot" style="background:${cores[s]};"></span>
+      ${labels[s]}: ${counts[s]}
     </div>
   `).join("");
 }
 
-// Exportar funções úteis
+function renderTopClientes() {
+  const el = document.getElementById("top-clientes");
+  if (!el) return;
+  const history = window.BetLocal.getBetHistory();
+  const byCliente = {};
+  history.forEach(b => {
+    const nome = b.cliente_nome || "Walk-in";
+    if (!byCliente[nome]) byCliente[nome] = { total: 0, count: 0 };
+    byCliente[nome].total += Number(b.valor || 0);
+    byCliente[nome].count++;
+  });
+  const sorted = Object.entries(byCliente).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
+
+  if (!sorted.length) {
+    el.innerHTML = `<div style="color:var(--muted);text-align:center;padding:20px;">Nenhum cliente ainda.</div>`;
+    return;
+  }
+
+  el.innerHTML = sorted.map(([nome, data]) => `
+    <div class="financas-cliente-item">
+      <span class="financas-cliente-name">${window.BetLocal.escapeHTML(nome)}</span>
+      <span>
+        <span class="financas-cliente-value">${window.BetLocal.currency.format(data.total)}</span>
+        <span style="color:var(--muted);font-size:0.78rem;"> (${data.count} bets)</span>
+      </span>
+    </div>
+  `).join("");
+}
+
+function renderUltimosFechamentos() {
+  const el = document.getElementById("ultimos-fechamentos");
+  if (!el) return;
+  const caixa = getCaixa();
+  const historico = caixa?.historico || [];
+  const fechamentos = historico.filter(t => t.fechadoEm).sort((a, b) => new Date(b.fechadoEm) - new Date(a.fechadoEm)).slice(0, 5);
+
+  if (!fechamentos.length) {
+    el.innerHTML = `<div style="color:var(--muted);text-align:center;padding:20px;">Nenhum fechamento ainda.</div>`;
+    return;
+  }
+
+  el.innerHTML = fechamentos.map(t => {
+    const diff = Number(t.valor_final || 0) - Number(t.valor_inicial || 0);
+    const diffClass = diff >= 0 ? "positivo" : "negativo";
+    const diffLabel = diff >= 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
+    return `<div class="financas-fechamento-item">
+      <div>
+        <div class="financas-fechamento-data">${new Date(t.fechadoEm).toLocaleDateString("pt-BR")} ${new Date(t.fechadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
+        <div style="font-size:0.75rem;color:var(--muted);">${window.BetLocal.escapeHTML(t.operador || "")}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="financas-fechamento-valor">${window.BetLocal.currency.format(Number(t.valor_final || 0))}</div>
+        <div class="financas-fechamento-diff ${diffClass}">${diffLabel}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
 window.BetLocalOperador = {
   getCaixa,
   getClientes,
-  getLimite,
+  getLimite: () => {
+    try { return JSON.parse(localStorage.getItem("betlocal.operador.limite") || "1000"); }
+    catch { return 1000; }
+  },
   showQRModal,
   shareWhatsApp,
   printBilhete,

@@ -341,6 +341,23 @@ const TEAM_LEAGUE_MAP = {
   "CRB": "Copa do Nordeste",
   "Confiança": "Copa do Nordeste",
   "Botafogo-PB": "Copa do Nordeste",
+  "Caucaia": "Copa do Nordeste",
+  "Sport": "Copa do Nordeste",
+  "Freipaulistano": "Copa do Nordeste",
+  "Estrela": "Copa do Nordeste",
+  "Salgueiro": "Copa do Nordeste",
+  "Afogados": "Copa do Nordeste",
+  "Atlético-CE": "Copa do Nordeste",
+  "Floresta": "Copa do Nordeste",
+  "Parnahyba": "Copa do Nordeste",
+  "River-PI": "Copa do Nordeste",
+  "Altos": "Copa do Nordeste",
+  "América-RN": "Copa do Nordeste",
+  "ABC": "Copa do Nordeste",
+  "Vitória": "Copa do Nordeste",
+  "Jacobina": "Copa do Nordeste",
+  "Fluminense-BA": "Copa do Nordeste",
+  "Itabuna": "Copa do Nordeste",
   
   // LIBERTADORES
   "Flamengo": "Libertadores",
@@ -556,7 +573,7 @@ const TEAM_LOGOS = {
   // PAULISTA
   "Santo André": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05464.png",
   "Guarani": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05326.png",
-  "Inter de Limeira": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05331.png",
+  "Inter de Limeira": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05337.png",
   "Ituano": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05335.png",
   
   // MINEIRO
@@ -621,7 +638,7 @@ const TEAM_LOGOS = {
   // MARANHENSE
   "Sampaio Corrêa": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05460.png",
   "Moto Club": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05404.png",
-  "Tupan": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05491.png",
+  "Tupan": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05490.png",
   
   // ACREANO
   "Galvez": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05321.png",
@@ -665,45 +682,98 @@ const TEAM_LOGOS = {
   "Rio Branco VN": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05456.png",
   "Caravaggio": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05295.png",
   
-  // COPA DO MUNDO
-  "Alemanha": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05300.png",
-  "Holanda": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05313.png",
-  "Brasil": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05301.png",
-  "Argentina": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05277.png",
-  "França": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05319.png",
-  "Itália": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05332.png",
-  "Espanha": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05473.png",
-  "Inglaterra": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05312.png",
-  "Portugal": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05428.png",
-  "Japão": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05336.png",
-  "México": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05400.png",
-  "Estados Unidos": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05491.png",
-  "Uruguai": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05503.png",
-  "Croácia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05253.png",
-  "Bélgica": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05288.png",
-  "Suíça": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05477.png",
-  "Polônia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05425.png",
-  "Senegal": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05464.png",
-  "Marrocos": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05400.png",
-  "Egito": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05259.png",
-  "Nigéria": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05410.png",
-  "Camarões": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05293.png",
-  "Gana": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05323.png",
-  "Costa do Marfim": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05250.png",
-  "Equador": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05258.png",
-  "Colômbia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05246.png",
-  "Peru": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05423.png",
-  "Chile": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05304.png",
-  "Paraguai": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05418.png",
-  "Bolívia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05296.png",
-  "Venezuela": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05507.png",
-  "Suécia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05476.png",
-  "Tunísia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05488.png",
-  "Austrália": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05281.png",
-  "Coreia do Sul": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05339.png",
-  "Catar": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05432.png",
-  "Irã": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05332.png",
-  "Arábia Saudita": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05462.png",
+  // CLUBES INTERNACIONAIS (adicionados para cobertura do placar)
+  "Dynamo Kyiv": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05258.png",
+  "Midtjylland": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05400.png",
+  "Lillestrøm": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05342.png",
+  "CSKA Sofia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05306.png",
+  "Levski Sofia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05341.png",
+  "Slovan Bratislava": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05466.png",
+  "Wisła Płock": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05510.png",
+  "Grazer AK": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05325.png",
+  "DAC": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05254.png",
+  "Trencin": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05483.png",
+  "Győri ETO": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05324.png",
+  "Pogoń Siedlce": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05428.png",
+  "Polonia Bytom": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05425.png",
+  "Nieciecza": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05413.png",
+  "Unia Tarnów": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05494.png",
+  "Oberwart": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05416.png",
+  "Rapid Wien II": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05450.png",
+  "Bayern Alzenau": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05289.png",
+  "Hain": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05328.png",
+  "Gryf Wejherowo": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05326.png",
+  "Differdange 03": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05257.png",
+  "UNA Strassen": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05493.png",
+  "Akademik Svishtov": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05268.png",
+  "Pohronie": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05427.png",
+  "Liptovský Mikuláš": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05343.png",
+  "Povazska Bystrica": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05429.png",
+  "Šamorín": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05461.png",
+  "Baník Lehota p.Vtáčnikom": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05286.png",
+  "Mačva Šabac": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05452.png",
+  "Zemun": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05511.png",
+  "Morelia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05404.png",
+  "Necaxa": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05415.png",
+  "San Marcos": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05460.png",
+  "Deportes Limache": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05260.png",
+  "Deportes Santa Cruz": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05459.png",
+  "Leonico": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05340.png",
+
+  // COPA DO MUNDO / SELEÇÕES (usando flagcdn para todas)
+  "Alemanha": "https://flagcdn.com/w40/de.png",
+  "Holanda": "https://flagcdn.com/w40/nl.png",
+  "Brasil": "https://flagcdn.com/w40/br.png",
+  "Argentina": "https://flagcdn.com/w40/ar.png",
+  "França": "https://flagcdn.com/w40/fr.png",
+  "Itália": "https://flagcdn.com/w40/it.png",
+  "Espanha": "https://flagcdn.com/w40/es.png",
+  "Inglaterra": "https://flagcdn.com/w40/gb.png",
+  "Portugal": "https://flagcdn.com/w40/pt.png",
+  "Japão": "https://flagcdn.com/w40/jp.png",
+  "México": "https://flagcdn.com/w40/mx.png",
+  "Estados Unidos": "https://flagcdn.com/w40/us.png",
+  "Uruguai": "https://flagcdn.com/w40/uy.png",
+  "Croácia": "https://flagcdn.com/w40/hr.png",
+  "Bélgica": "https://flagcdn.com/w40/be.png",
+  "Suíça": "https://flagcdn.com/w40/ch.png",
+  "Polônia": "https://flagcdn.com/w40/pl.png",
+  "Senegal": "https://flagcdn.com/w40/sn.png",
+  "Marrocos": "https://flagcdn.com/w40/ma.png",
+  "Egito": "https://flagcdn.com/w40/eg.png",
+  "Nigéria": "https://flagcdn.com/w40/ng.png",
+  "Camarões": "https://flagcdn.com/w40/cm.png",
+  "Gana": "https://flagcdn.com/w40/gh.png",
+  "Costa do Marfim": "https://flagcdn.com/w40/ci.png",
+  "Equador": "https://flagcdn.com/w40/ec.png",
+  "Colômbia": "https://flagcdn.com/w40/co.png",
+  "Peru": "https://flagcdn.com/w40/pe.png",
+  "Chile": "https://flagcdn.com/w40/cl.png",
+  "Paraguai": "https://flagcdn.com/w40/py.png",
+  "Bolívia": "https://flagcdn.com/w40/bo.png",
+  "Venezuela": "https://flagcdn.com/w40/ve.png",
+  "Suécia": "https://flagcdn.com/w40/se.png",
+  "Tunísia": "https://flagcdn.com/w40/tn.png",
+  "Austrália": "https://flagcdn.com/w40/au.png",
+  "Coreia do Sul": "https://flagcdn.com/w40/kr.png",
+  "Catar": "https://flagcdn.com/w40/qa.png",
+  "Irã": "https://flagcdn.com/w40/ir.png",
+  "Arábia Saudita": "https://flagcdn.com/w40/sa.png",
+  "Escócia": "https://flagcdn.com/w40/gb-sct.png",
+  "Haiti": "https://flagcdn.com/w40/ht.png",
+  "Canadá": "https://flagcdn.com/w40/ca.png",
+  "Qatar": "https://flagcdn.com/w40/qa.png",
+  "Ucrânia": "https://flagcdn.com/w40/ua.png",
+  "Dinamarca": "https://flagcdn.com/w40/dk.png",
+  "Noruega": "https://flagcdn.com/w40/no.png",
+  "Irlanda": "https://flagcdn.com/w40/ie.png",
+  "Áustria": "https://flagcdn.com/w40/at.png",
+  "Hungria": "https://flagcdn.com/w40/hu.png",
+  "Romênia": "https://flagcdn.com/w40/ro.png",
+  "República Tcheca": "https://flagcdn.com/w40/cz.png",
+  "Grécia": "https://flagcdn.com/w40/gr.png",
+  "Turquia": "https://flagcdn.com/w40/tr.png",
+  "Curaçao": "https://flagcdn.com/w40/cw.png",
   
   // PREMIER LEAGUE
   "Manchester City": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05402.png",
@@ -738,7 +808,6 @@ const TEAM_LOGOS = {
   "Athletic Bilbao": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05270.png",
   "Valencia": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05504.png",
   "Girona": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05324.png",
-  "Real Betis": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05289.png",
   "Osasuna": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05416.png",
   "Mallorca": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05445.png",
   "Getafe": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05322.png",
@@ -854,8 +923,235 @@ const TEAM_LOGOS = {
   "Feirense": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05315.png",
   "Pacos de Ferreira": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05418.png",
   "Tondela": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05483.png",
-  "Arsenal": "https://ssl.gstatic.com/lln/sports/soccer/team/em_05426.png",
 };
+
+// ============================================================
+// CARREGAR LOGOS EXTRAS DO JSON
+// ============================================================
+
+let EXTRA_TEAM_LOGOS = {};
+
+// Carregar logos extras do JSON gerado
+async function loadExtraTeamLogos() {
+  try {
+    const response = await fetch("js/team-logos-data.json");
+    if (response.ok) {
+      EXTRA_TEAM_LOGOS = await response.json();
+      console.log(`[Logos] Carregados ${Object.keys(EXTRA_TEAM_LOGOS).length} logos extras`);
+    }
+  } catch (e) {
+    console.warn("[Logos] Não foi possível carregar team-logos-data.json");
+  }
+}
+
+// Iniciar carregamento (expor promise para outros módulos aguardarem)
+window.loadExtraTeamLogosPromise = loadExtraTeamLogos();
+
+// ============================================================
+// CACHE DE LOGOS DINÂMICOS (TheSportsDB)
+// ============================================================
+
+const LOGO_CACHE = {};
+const LOGO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 horas
+
+// Funcao para buscar logo no TheSportsDB (assincrona)
+async function fetchTeamLogoFromTheSportsDB(teamName) {
+  const cacheKey = `sportsdb_${teamName}`;
+  const cached = LOGO_CACHE[cacheKey];
+  
+  // Verificar cache
+  if (cached && (Date.now() - cached.timestamp) < LOGO_CACHE_TTL) {
+    return cached.logoUrl;
+  }
+  
+  try {
+    const encoded = encodeURIComponent(teamName);
+    const url = `https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encoded}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    const teams = data.teams || [];
+    
+    if (teams.length > 0) {
+      const team = teams[0];
+      const logoUrl = team.strTeamLogo || team.strTeamBadge;
+      
+      if (logoUrl) {
+        // Salvar no cache
+        LOGO_CACHE[cacheKey] = {
+          logoUrl,
+          timestamp: Date.now()
+        };
+        return logoUrl;
+      }
+    }
+  } catch (e) {
+    console.warn(`[TheSportsDB] Erro ao buscar ${teamName}:`, e);
+  }
+  
+  return null;
+}
+
+// Funcao para buscar logo com fallback em cascata (assincrona)
+async function getTeamLogo(teamName) {
+  if (!teamName) return null;
+  
+  const name = teamName.trim();
+  
+  // 1. LOGO_CACHE (TheSportsDB previamente buscado ou Wikipedia)
+  const cacheKey = `sportsdb_${name}`;
+  if (LOGO_CACHE[cacheKey] && (Date.now() - LOGO_CACHE[cacheKey].timestamp) < LOGO_CACHE_TTL) {
+    return LOGO_CACHE[cacheKey].logoUrl;
+  }
+  
+  // 2. TEAM_LOGOS direto
+  if (TEAM_LOGOS[name]) return TEAM_LOGOS[name];
+  
+  // 3. EXTRA_TEAM_LOGOS direto
+  if (EXTRA_TEAM_LOGOS[name]) return EXTRA_TEAM_LOGOS[name];
+  
+  // 4. Alias
+  const alias = TEAM_ALIASES[name];
+  if (alias) {
+    if (TEAM_LOGOS[alias]) return TEAM_LOGOS[alias];
+    if (EXTRA_TEAM_LOGOS[alias]) return EXTRA_TEAM_LOGOS[alias];
+    const aliasCacheKey = `sportsdb_${alias}`;
+    if (LOGO_CACHE[aliasCacheKey] && (Date.now() - LOGO_CACHE[aliasCacheKey].timestamp) < LOGO_CACHE_TTL) {
+      return LOGO_CACHE[aliasCacheKey].logoUrl;
+    }
+  }
+  
+  // 5. Variacoes inteligentes
+  const variations = generateNameVariations(name);
+  for (const v of variations) {
+    if (TEAM_LOGOS[v]) return TEAM_LOGOS[v];
+    if (EXTRA_TEAM_LOGOS[v]) return EXTRA_TEAM_LOGOS[v];
+    const vAlias = TEAM_ALIASES[v];
+    if (vAlias) {
+      if (TEAM_LOGOS[vAlias]) return TEAM_LOGOS[vAlias];
+      if (EXTRA_TEAM_LOGOS[vAlias]) return EXTRA_TEAM_LOGOS[vAlias];
+    }
+    const vCacheKey = `sportsdb_${v}`;
+    if (LOGO_CACHE[vCacheKey] && (Date.now() - LOGO_CACHE[vCacheKey].timestamp) < LOGO_CACHE_TTL) {
+      return LOGO_CACHE[vCacheKey].logoUrl;
+    }
+  }
+  
+  // 6. TheSportsDB (assincrono - consulta externa)
+  const sportsdbLogo = await fetchTeamLogoFromTheSportsDB(name);
+  if (sportsdbLogo) return sportsdbLogo;
+  
+  // 7. TheSportsDB com alias
+  if (alias) {
+    const aliasLogo = await fetchTeamLogoFromTheSportsDB(alias);
+    if (aliasLogo) return aliasLogo;
+  }
+  
+  // 8. TheSportsDB com variacoes
+  for (const v of variations) {
+    const vLgo = await fetchTeamLogoFromTheSportsDB(v);
+    if (vLgo) return vLgo;
+    const vAlias = TEAM_ALIASES[v];
+    if (vAlias) {
+      const vaLgo = await fetchTeamLogoFromTheSportsDB(vAlias);
+      if (vaLgo) return vaLgo;
+    }
+  }
+  
+  return null;
+}
+
+// Gera variacoes de nome para busca
+function generateNameVariations(name) {
+  const vars = new Set();
+  
+  // 1. Remover sufixo "Sub-20" ou "Sub-20" (com ou sem hífen)
+  let base = name.replace(/\s+Sub[-\s]?20\s*$/i, "").trim();
+  if (base !== name.trim()) vars.add(base);
+  
+  // 2. Remover sufixo de estado (-RJ, -SP, -MG, -RS, -PR, -BA, -CE, -DF, -PB, -PE, -RN, -ES, -SC, -GO, -MS, -MT, -PA, -MA, -PI, -AL, -SE, -TO, -RO, -AC, -AM, -RR, -AP)
+  const stateSuffixRemoved = base.replace(/-(RJ|SP|MG|RS|PR|BA|CE|DF|PB|PE|RN|ES|SC|GO|MS|MT|PA|MA|PI|AL|SE|TO|RO|AC|AM|RR|AP|CHI)$/i, "").trim();
+  if (stateSuffixRemoved !== base && stateSuffixRemoved.length > 1) vars.add(stateSuffixRemoved);
+  
+  // 3. Se o nome original tinha estado, tentar sem estado
+  const originalNoState = name.replace(/-(RJ|SP|MG|RS|PR|BA|CE|DF|PB|PE|RN|ES|SC|GO|MS|MT|PA|MA|PI|AL|SE|TO|RO|AC|AM|RR|AP|CHI)$/i, "").trim();
+  if (originalNoState !== name.trim() && originalNoState.length > 1) vars.add(originalNoState);
+  
+  // 4. Combinado: Sub-20 + estado
+  const combined = name.replace(/\s+Sub[-\s]?20\s*$/i, "").replace(/-(RJ|SP|MG|RS|PR|BA|CE|DF|PB|PE|RN|ES|SC|GO|MS|MT|PA|MA|PI|AL|SE|TO|RO|AC|AM|RR|AP|CHI)$/i, "").trim();
+  if (combined !== name.trim() && combined.length > 1) vars.add(combined);
+  
+  // 5. Variacoes de prefixo/sufixo originais
+  const suffixVariations = [
+    name.replace(/\s+(FC|SC|AC|SE|CA)$/i, ""),
+    name.replace(/^SC\s+/i, ""),
+    name.replace(/^SE\s+/i, ""),
+    name.replace(/^CA\s+/i, ""),
+    name.replace(/^CR\s+/i, ""),
+  ];
+  
+  for (const v of suffixVariations) {
+    if (v !== name.trim()) vars.add(v.trim());
+  }
+  
+  // 6. Da base ja limpa, tentar sem prefixos
+  for (const v of [...vars]) {
+    const clean = v.replace(/^(SC|SE|CA|CR|EC|FC)\s+/i, "").trim();
+    if (clean !== v && clean.length > 1) vars.add(clean);
+  }
+  
+  return [...vars];
+}
+
+// Versao sincrona para uso imediato
+function getTeamLogoSync(teamName) {
+  if (!teamName) return null;
+  
+  const name = teamName.trim();
+  
+  // 0. Verificar LOGO_CACHE (TheSportsDB previamente buscado)
+  const cacheKey = `sportsdb_${name}`;
+  if (LOGO_CACHE[cacheKey] && (Date.now() - LOGO_CACHE[cacheKey].timestamp) < LOGO_CACHE_TTL) {
+    return LOGO_CACHE[cacheKey].logoUrl;
+  }
+  
+  // 1. Direto em TEAM_LOGOS
+  if (TEAM_LOGOS[name]) return TEAM_LOGOS[name];
+  
+  // 2. Direto em EXTRA_TEAM_LOGOS
+  if (EXTRA_TEAM_LOGOS[name]) return EXTRA_TEAM_LOGOS[name];
+  
+  // 3. Alias
+  const alias = TEAM_ALIASES[name];
+  if (alias) {
+    if (TEAM_LOGOS[alias]) return TEAM_LOGOS[alias];
+    if (EXTRA_TEAM_LOGOS[alias]) return EXTRA_TEAM_LOGOS[alias];
+    const aliasCacheKey = `sportsdb_${alias}`;
+    if (LOGO_CACHE[aliasCacheKey] && (Date.now() - LOGO_CACHE[aliasCacheKey].timestamp) < LOGO_CACHE_TTL) {
+      return LOGO_CACHE[aliasCacheKey].logoUrl;
+    }
+  }
+  
+  // 4. Variacoes inteligentes
+  const variations = generateNameVariations(name);
+  for (const v of variations) {
+    if (TEAM_LOGOS[v]) return TEAM_LOGOS[v];
+    if (EXTRA_TEAM_LOGOS[v]) return EXTRA_TEAM_LOGOS[v];
+    const vAlias = TEAM_ALIASES[v];
+    if (vAlias) {
+      if (TEAM_LOGOS[vAlias]) return TEAM_LOGOS[vAlias];
+      if (EXTRA_TEAM_LOGOS[vAlias]) return EXTRA_TEAM_LOGOS[vAlias];
+    }
+    const vCacheKey = `sportsdb_${v}`;
+    if (LOGO_CACHE[vCacheKey] && (Date.now() - LOGO_CACHE[vCacheKey].timestamp) < LOGO_CACHE_TTL) {
+      return LOGO_CACHE[vCacheKey].logoUrl;
+    }
+  }
+  
+  return null;
+}
 
 // Fator de redução das odds (20%)
 const ODDS_REDUCTION_FACTOR = 0.80;
@@ -1045,33 +1341,70 @@ const TEAM_ALIASES = {
   "Racing": "Racing Club",
   "San Lorenzo": "San Lorenzo",
   "San Lorenzo de Almagro": "San Lorenzo",
+
+  // ====== VARIAÇÕES DO PLACAR ======
+  "Ypiranga": "Ypiranga-RS",
+  "Portuguesa": "Portuguesa-RJ",
+  "Sampaio Corrêa-RJ": "Sampaio Corrêa",
+  "Sampaio Correa-RJ": "Sampaio Corrêa",
+  "São Luiz-RS": "São Luiz",
+  "Sao Luiz-RS": "São Luiz",
+  "Guarani-MG": "Guarani",
+  "Everton de Viña": "Everton CD",
+  "Everton de Vina": "Everton CD",
+  "Rangers-CHI": "Rangers",
+  "Bragantino Sub-20": "Red Bull Bragantino",
+  "Olaria Sub-20": "Olaria",
+  "Floresta Sub-20": "Floresta",
+  "Athletico-PR Sub-20": "Athletico-PR",
+  "Athletico Paranaense Sub-20": "Athletico-PR",
+  "America-RJ": "América-RJ",
+  "America-MG": "América-MG",
+  "Ceará Sub-20": "Ceará",
+  "Ceara Sub-20": "Ceará",
+  "Fortaleza Sub-20": "Fortaleza",
+  "Ferroviário Sub-20": "Ferroviário",
+  "Ferroviario Sub-20": "Ferroviário",
+  "Paranoá Sub-20": "Paranoá",
+  "Paranoa Sub-20": "Paranoá",
+  "Taguatinga Sub-20": "Taguatinga",
+  "Ceilândia": "Ceilandia",
+  "Ceilandia Sub-20": "Ceilandia",
+  "SESP Taguatinga Sub-20": "Taguatinga",
+  "CA Taguatinga Sub-20": "Taguatinga",
+  "Real-DF Sub-20": "Real Brasília",
+  "Real-DF Sub-20": "Real Brasilia",
+  "Tianguá Sub-20": "Tianguá",
+  "Tiangua Sub-20": "Tianguá",
+  "Camacari Sub-20": "Camaçari",
+  "Vila Real Sub-20": "Vila Real",
+  "Alianca Sub-20": "Aliança",
+  "Queimadense Sub-20": "Queimadense",
+  "America-RJ Sub-20": "América-RJ",
+  "America-RN": "América-RN",
+
+  // ====== SELEÇÕES ======
+  "Curaçao": "Curaçao",
+  "Curacao": "Curaçao",
+  "Costa do Marfim": "Costa do Marfim",
+  "Holanda": "Holanda",
+  "Suécia": "Suécia",
+  "Suecia": "Suécia",
+  "Equador": "Equador",
+  "Paraguai": "Paraguai",
+
+  // ====== TIMES ÓRFÃOS (sem logo direto) ======
+  "Portuguesa": "Portuguesa-RJ",
+  "São Gonçalo EC RJ": "São Gonçalo",
+  "CA Taguatinga Sub-20": "SESP Taguatinga",
+  "Tianguá Sub-20": "Tianguá",
+  "Grêmio Valparaíso Sub-20": "Grêmio Valparaiso",
+  "José Bonifácio": "Jose Bonifacio",
 };
 
-// Função para encontrar logo com aliases
+// Função para encontrar logo com aliases (sincrona)
 function findTeamLogoByName(teamName) {
-  if (!teamName) return null;
-  
-  // 1. Busca direta
-  if (TEAM_LOGOS[teamName]) return TEAM_LOGOS[teamName];
-  
-  // 2. Busca por alias
-  const alias = TEAM_ALIASES[teamName];
-  if (alias && TEAM_LOGOS[alias]) return TEAM_LOGOS[alias];
-  
-  // 3. Variações comuns
-  const variations = [
-    teamName.replace(/\s+(FC|SC|AC|SE|CA)$/i, ""),
-    teamName.replace(/^SC\s+/i, ""),
-    teamName.replace(/^SE\s+/i, ""),
-    teamName.replace(/^CA\s+/i, ""),
-    teamName.replace(/^CR\s+/i, ""),
-  ];
-  
-  for (const v of variations) {
-    if (TEAM_LOGOS[v]) return TEAM_LOGOS[v];
-  }
-  
-  return null;
+  return getTeamLogoSync(teamName);
 }
 
 // Exportar para uso global
@@ -1085,3 +1418,11 @@ window.TEAM_ALIASES = TEAM_ALIASES;
 window.findTeamLogoByName = findTeamLogoByName;
 window.reduceOdds = reduceOdds;
 window.reduceGameOdds = reduceGameOdds;
+
+// Novas funções de logo
+window.getTeamLogo = getTeamLogo;
+window.getTeamLogoSync = getTeamLogoSync;
+window.fetchTeamLogoFromTheSportsDB = fetchTeamLogoFromTheSportsDB;
+window.LOGO_CACHE = LOGO_CACHE;
+window.EXTRA_TEAM_LOGOS = EXTRA_TEAM_LOGOS;
+window.loadExtraTeamLogos = loadExtraTeamLogos;
