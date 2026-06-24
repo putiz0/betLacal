@@ -948,6 +948,28 @@ async function loadExtraTeamLogos() {
 window.loadExtraTeamLogosPromise = loadExtraTeamLogos();
 
 // ============================================================
+// LOGOS DO SUPABASE (backend)
+// ============================================================
+
+let LOGOS_FROM_SUPABASE = null;
+
+async function loadLogosFromSupabase() {
+  try {
+    if (!window.BetLocalSupabase?.isEnabled?.()) return;
+    const rows = await window.BetLocalSupabase.fetchAllTeamLogos();
+    LOGOS_FROM_SUPABASE = {};
+    for (const row of rows) {
+      LOGOS_FROM_SUPABASE[row.team_name] = row.logo_url;
+    }
+    console.log(`[Logos] Carregados ${Object.keys(LOGOS_FROM_SUPABASE).length} logos do Supabase`);
+  } catch (e) {
+    console.warn("[Logos] Não foi possível carregar logos do Supabase:", e);
+  }
+}
+
+window.loadLogosFromSupabasePromise = loadLogosFromSupabase();
+
+// ============================================================
 // CACHE DE LOGOS DINÂMICOS (TheSportsDB)
 // ============================================================
 
@@ -994,11 +1016,20 @@ async function fetchTeamLogoFromTheSportsDB(teamName) {
   return null;
 }
 
+// Helper: salva logo no Supabase sem interromper o fluxo
+function fireAndForgetSaveToSupabase(teamName, logoUrl) {
+  if (!window.BetLocalSupabase?.isEnabled?.()) return;
+  window.BetLocalSupabase.syncTeamLogosFromLocal(teamName, logoUrl).catch(() => {});
+}
+
 // Funcao para buscar logo com fallback em cascata (assincrona)
 async function getTeamLogo(teamName) {
   if (!teamName) return null;
   
   const name = teamName.trim();
+  
+  // 0. LOGOS_FROM_SUPABASE (backend)
+  if (LOGOS_FROM_SUPABASE && LOGOS_FROM_SUPABASE[name]) return LOGOS_FROM_SUPABASE[name];
   
   // 1. LOGO_CACHE (TheSportsDB previamente buscado ou Wikipedia)
   const cacheKey = `sportsdb_${name}`;
@@ -1015,6 +1046,7 @@ async function getTeamLogo(teamName) {
   // 4. Alias
   const alias = TEAM_ALIASES[name];
   if (alias) {
+    if (LOGOS_FROM_SUPABASE && LOGOS_FROM_SUPABASE[alias]) return LOGOS_FROM_SUPABASE[alias];
     if (TEAM_LOGOS[alias]) return TEAM_LOGOS[alias];
     if (EXTRA_TEAM_LOGOS[alias]) return EXTRA_TEAM_LOGOS[alias];
     const aliasCacheKey = `sportsdb_${alias}`;
@@ -1026,10 +1058,12 @@ async function getTeamLogo(teamName) {
   // 5. Variacoes inteligentes
   const variations = generateNameVariations(name);
   for (const v of variations) {
+    if (LOGOS_FROM_SUPABASE && LOGOS_FROM_SUPABASE[v]) return LOGOS_FROM_SUPABASE[v];
     if (TEAM_LOGOS[v]) return TEAM_LOGOS[v];
     if (EXTRA_TEAM_LOGOS[v]) return EXTRA_TEAM_LOGOS[v];
     const vAlias = TEAM_ALIASES[v];
     if (vAlias) {
+      if (LOGOS_FROM_SUPABASE && LOGOS_FROM_SUPABASE[vAlias]) return LOGOS_FROM_SUPABASE[vAlias];
       if (TEAM_LOGOS[vAlias]) return TEAM_LOGOS[vAlias];
       if (EXTRA_TEAM_LOGOS[vAlias]) return EXTRA_TEAM_LOGOS[vAlias];
     }
@@ -1041,22 +1075,34 @@ async function getTeamLogo(teamName) {
   
   // 6. TheSportsDB (assincrono - consulta externa)
   const sportsdbLogo = await fetchTeamLogoFromTheSportsDB(name);
-  if (sportsdbLogo) return sportsdbLogo;
+  if (sportsdbLogo) {
+    fireAndForgetSaveToSupabase(name, sportsdbLogo);
+    return sportsdbLogo;
+  }
   
   // 7. TheSportsDB com alias
   if (alias) {
     const aliasLogo = await fetchTeamLogoFromTheSportsDB(alias);
-    if (aliasLogo) return aliasLogo;
+    if (aliasLogo) {
+      fireAndForgetSaveToSupabase(alias, aliasLogo);
+      return aliasLogo;
+    }
   }
   
   // 8. TheSportsDB com variacoes
   for (const v of variations) {
     const vLgo = await fetchTeamLogoFromTheSportsDB(v);
-    if (vLgo) return vLgo;
+    if (vLgo) {
+      fireAndForgetSaveToSupabase(v, vLgo);
+      return vLgo;
+    }
     const vAlias = TEAM_ALIASES[v];
     if (vAlias) {
       const vaLgo = await fetchTeamLogoFromTheSportsDB(vAlias);
-      if (vaLgo) return vaLgo;
+      if (vaLgo) {
+        fireAndForgetSaveToSupabase(vAlias, vaLgo);
+        return vaLgo;
+      }
     }
   }
   
@@ -1111,7 +1157,10 @@ function getTeamLogoSync(teamName) {
   
   const name = teamName.trim();
   
-  // 0. Verificar LOGO_CACHE (TheSportsDB previamente buscado)
+  // 0. LOGOS_FROM_SUPABASE (backend)
+  if (LOGOS_FROM_SUPABASE && LOGOS_FROM_SUPABASE[name]) return LOGOS_FROM_SUPABASE[name];
+  
+  // 0.5 Verificar LOGO_CACHE (TheSportsDB previamente buscado)
   const cacheKey = `sportsdb_${name}`;
   if (LOGO_CACHE[cacheKey] && (Date.now() - LOGO_CACHE[cacheKey].timestamp) < LOGO_CACHE_TTL) {
     return LOGO_CACHE[cacheKey].logoUrl;
@@ -1126,6 +1175,7 @@ function getTeamLogoSync(teamName) {
   // 3. Alias
   const alias = TEAM_ALIASES[name];
   if (alias) {
+    if (LOGOS_FROM_SUPABASE && LOGOS_FROM_SUPABASE[alias]) return LOGOS_FROM_SUPABASE[alias];
     if (TEAM_LOGOS[alias]) return TEAM_LOGOS[alias];
     if (EXTRA_TEAM_LOGOS[alias]) return EXTRA_TEAM_LOGOS[alias];
     const aliasCacheKey = `sportsdb_${alias}`;
@@ -1137,10 +1187,12 @@ function getTeamLogoSync(teamName) {
   // 4. Variacoes inteligentes
   const variations = generateNameVariations(name);
   for (const v of variations) {
+    if (LOGOS_FROM_SUPABASE && LOGOS_FROM_SUPABASE[v]) return LOGOS_FROM_SUPABASE[v];
     if (TEAM_LOGOS[v]) return TEAM_LOGOS[v];
     if (EXTRA_TEAM_LOGOS[v]) return EXTRA_TEAM_LOGOS[v];
     const vAlias = TEAM_ALIASES[v];
     if (vAlias) {
+      if (LOGOS_FROM_SUPABASE && LOGOS_FROM_SUPABASE[vAlias]) return LOGOS_FROM_SUPABASE[vAlias];
       if (TEAM_LOGOS[vAlias]) return TEAM_LOGOS[vAlias];
       if (EXTRA_TEAM_LOGOS[vAlias]) return EXTRA_TEAM_LOGOS[vAlias];
     }
@@ -1426,3 +1478,5 @@ window.fetchTeamLogoFromTheSportsDB = fetchTeamLogoFromTheSportsDB;
 window.LOGO_CACHE = LOGO_CACHE;
 window.EXTRA_TEAM_LOGOS = EXTRA_TEAM_LOGOS;
 window.loadExtraTeamLogos = loadExtraTeamLogos;
+window.LOGOS_FROM_SUPABASE = LOGOS_FROM_SUPABASE;
+window.loadLogosFromSupabasePromise = loadLogosFromSupabasePromise;

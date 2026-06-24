@@ -104,11 +104,32 @@ function setSession(session) {
 }
 
 function getClientById(clientId) {
+  // Cliente virtual de demonstração
+  if (clientId === "demo") {
+    return {
+      id: "demo",
+      nome: "Demonstração",
+      plano: "demo",
+      status: "demo",
+      vencimento: null,
+      tema: {
+        nome_sistema: "Bet Local — Demonstração",
+        cor_primaria: "#ff5a16",
+        cor_fundo: "#090b10",
+        logo_url: null
+      },
+      usuarios: []
+    };
+  }
   return loadClients().find((client) => client.id === clientId) || loadClients()[0];
 }
 
 function getCurrentClient() {
   const params = new URLSearchParams(window.location.search);
+  // Se tem ?demo, força cliente demo
+  if (params.has("demo")) {
+    return getClientById("demo");
+  }
   const clientFromUrl = params.get("cliente");
   const session = getSession();
   return getClientById(clientFromUrl || session?.cliente_id || DEFAULT_CLIENT_ID);
@@ -318,9 +339,6 @@ function requireRoles(roles, onAllowed) {
 }
 
 function renderLoginGate(roles) {
-  const hint = roles.includes("super_admin")
-    ? "Teste local: super@betlocal.local / 123456. Em producao use Supabase Auth."
-    : "Teste local: dono@betlocal.local / 123456. Em producao use Supabase Auth.";
   document.body.innerHTML = `
     <main class="auth-shell">
       <form class="auth-card" id="tenant-login-form">
@@ -329,7 +347,6 @@ function renderLoginGate(roles) {
         <label>Email<input name="email" type="email" autocomplete="email" required></label>
         <label>Senha<input name="password" type="password" autocomplete="current-password" required></label>
         <button class="primary-btn" type="submit">Entrar</button>
-        <p class="auth-hint">${hint}</p>
       </form>
     </main>
   `;

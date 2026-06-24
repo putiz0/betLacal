@@ -10,7 +10,7 @@
 <body class="master-page" data-page="master">
   <div class="master-layout">
     <aside class="master-sidebar">
-      <a class="brand" href="index.html" aria-label="Bet Local">
+      <a class="brand" href="tela-de-vendas.html" aria-label="Bet Local">
         <span class="brand-mark">BL</span>
         <span>Admin Master</span>
       </a>
@@ -18,9 +18,10 @@
         <a class="active" href="#dashboard">📊 Dashboard</a>
         <a href="#apostas">🎫 Todas as Apostas</a>
         <a href="#clientes-saas">🏢 Clientes</a>
+        <a href="#escudos">🖼️ Escudos</a>
         <a href="#casa">🏠 Minha Casa</a>
         <a href="operador.html">🛒 Painel do Operador</a>
-        <a href="index.html">🖥️ Tela de Vendas</a>
+        <a href="tela-de-vendas.html">🖥️ Tela de Vendas</a>
         <button id="master-logout" class="nav-button" type="button">🚪 Sair</button>
       </nav>
     </aside>
@@ -49,7 +50,7 @@
             <h2>⚡ Ações Rápidas</h2>
             <div style="display:grid; gap:8px;">
               <button class="primary-btn" id="btn-conferir-tudo" type="button">🔍 Conferir Resultados (Todas as Casas)</button>
-              <a class="primary-btn" href="index.html" style="text-align:center;">🛒 Ir para Tela de Vendas</a>
+              <a class="primary-btn" href="tela-de-vendas.html" style="text-align:center;">🛒 Ir para Tela de Vendas</a>
               <a class="primary-btn" href="operador.html" style="text-align:center;">🛒 Painel do Operador</a>
             </div>
           </div>
@@ -189,6 +190,44 @@
                 <tbody id="usuarios-tbody"></tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gerenciar Escudos -->
+      <section class="master-section" id="escudos" data-role="super_admin">
+        <div class="two-col-master">
+          <div class="master-card">
+            <h2>🖼️ Adicionar / Editar Escudo</h2>
+            <form id="escudo-form">
+              <div class="form-grid">
+                <label class="full">Nome do Time
+                  <input id="escudo-team-name" name="team_name" list="escudo-datalist" required placeholder="Ex: Flamengo, Palmeiras, Barcelona...">
+                  <datalist id="escudo-datalist"></datalist>
+                </label>
+                <label class="full">OU URL da Imagem
+                  <input id="escudo-url" name="logo_url" type="url" placeholder="https://exemplo.com/logo.png">
+                </label>
+                <label class="full">OU Fazer Upload
+                  <input id="escudo-file" name="logo_file" type="file" accept="image/*">
+                </label>
+                <div class="full" style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+                  <div id="escudo-preview" style="width:64px;height:64px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;color:var(--muted);background:var(--surface-2);">?</div>
+                  <button class="primary-btn" type="submit">💾 Salvar Escudo</button>
+                  <button class="ghost-btn" id="escudo-remove" type="button" style="border-color:var(--red);color:var(--red);display:none;">🗑️ Remover</button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="master-card">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+              <h2>📋 Escudos Cadastrados</h2>
+              <button class="ghost-btn" id="escudo-sync" type="button" style="border-color:var(--blue, #60a5fa);color:var(--blue, #60a5fa);">🔄 Sincronizar do TheSportsDB</button>
+            </div>
+            <div class="search-box-master">
+              <input id="escudo-search" type="search" placeholder="Buscar time...">
+            </div>
+            <div id="escudo-list" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px;"></div>
           </div>
         </div>
       </section>

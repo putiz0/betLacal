@@ -3,175 +3,215 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bet Local - Apostas Presenciais</title>
+  <title>Bet Local — Sistema de Apostas Presenciais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
 </head>
-<body data-page="home">
-  <header class="topbar">
-    <div class="topbar-row">
-      <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menu" type="button">
-        <span class="menu-icon"></span>
-      </button>
-      <a class="brand" href="index.html" aria-label="Bet Local">
-        <span class="brand-mark">BL</span>
-        <span data-brand-name>Bet Local</span>
-      </a>
-      <div class="topbar-actions">
-        <span class="cashier-status">Caixa aberto</span>
-        <span id="data-source-badge" class="data-badge" style="display:none;"></span>
+<body class="landing-page" data-page="landing">
+  <!-- NAVBAR -->
+  <nav class="landing-nav">
+    <a class="brand" href="#hero" aria-label="Bet Local">
+      <span class="brand-mark">BL</span>
+      <span data-brand-name>Bet Local</span>
+    </a>
+    <div class="landing-nav-links">
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#planos">Planos</a>
+      <a href="#acesso">Entrar</a>
+      <a href="tela-de-vendas.html">🛒 Vendas</a>
+      <a class="btn-whatsapp-nav" href="https://wa.me/5581993265977?text=Ol%C3%A1!%20Tenho%20interesse%20no%20Bet%20Local" target="_blank" rel="noopener">📱 WhatsApp</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <span class="hero-badge">⚡ Sistema completo para sua casa de apostas</span>
+      <h1>Transforme seu <span>estabelecimento</span> em uma casa de apostas</h1>
+      <p>Gerencie apostas esportivas presenciais com cupom rápido, odds em tempo real, caixa integrado e relatórios completos. Tudo que você precisa em um só lugar.</p>
+      <div class="hero-actions">
+        <a class="btn-primary-lg" href="#acesso">🔥 Começar agora</a>
+        <a class="btn-outline-lg" href="tela-de-vendas.html?demo">🛒 Ver demonstração</a>
+        <a class="btn-outline-lg" href="https://wa.me/5581993265977?text=Ol%C3%A1!%20Quero%20saber%20mais%20sobre%20o%20Bet%20Local" target="_blank" rel="noopener">📱 Falar no WhatsApp</a>
       </div>
     </div>
-    <nav class="main-nav" id="main-nav" aria-label="Navegação principal">
-      <a class="active" href="index.html">Esportes</a>
-      <a href="index.html#ao-vivo">Ao vivo</a>
-      <a href="operador.html">Operador</a>
-    </nav>
-    <div class="mobile-cashier" id="mobile-cashier" style="display:none;">
-      <span class="cashier-status">Caixa aberto</span>
+  </section>
+
+  <!-- COMO FUNCIONA -->
+  <section class="landing-section" id="como-funciona">
+    <h2>📋 Como funciona</h2>
+    <p class="subtitle">Em 4 passos simples você transforma seu negócio</p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-icon">📝</div>
+        <h3>1. Cadastre-se</h3>
+        <p>Crie sua conta em segundos. Escolha o plano ideal para seu estabelecimento e comece imediatamente.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon">🎨</div>
+        <h3>2. Personalize</h3>
+        <p>Configure as cores, logo e nome do sistema com a identidade visual da sua casa de apostas.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon">🎫</div>
+        <h3>3. Venda bilhetes</h3>
+        <p>Registre apostas com poucos cliques. Odds reais de futebol, basquete e muito mais.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon">📊</div>
+        <h3>4. Gerencie</h3>
+        <p>Acompanhe resultados em tempo real, controle o caixa, exporte relatórios e veja tudo no painel.</p>
+      </div>
     </div>
-  </header>
+  </section>
 
-  <div class="main-layout">
-    <aside class="sidebar">
-      <div class="section-heading">
-        <span>Competições</span>
-        <small id="total-games">0 jogos</small>
+  <!-- PLANOS -->
+  <section class="landing-section" id="planos">
+    <h2>💎 Planos e Preços</h2>
+    <p class="subtitle">Escolha o plano ideal para o seu negócio</p>
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div class="plan-name">🎁 Teste grátis</div>
+        <div class="plan-price">R$ 0</div>
+        <div class="plan-dias">30 dias de teste</div>
+        <ul class="plan-features">
+          <li>Até 1 operador</li>
+          <li>Odds em tempo real</li>
+          <li>Bilhete com QR Code</li>
+          <li class="nao">Nome personalizado</li>
+          <li class="nao">Cores personalizadas</li>
+          <li class="nao">Ajustes visuais</li>
+        </ul>
+        <a class="btn-primary-lg" href="#acesso" style="display:block;font-size:0.85rem;padding:12px;text-align:center;">Começar teste</a>
       </div>
-      <div class="search-box">
-        <input id="search-games" type="search" placeholder="Buscar time ou liga">
+      <div class="plan-card featured">
+        <div class="plan-name">📦 Padrão</div>
+        <div class="plan-price">R$ 150 <small>/mês</small></div>
+        <div class="plan-dias">30 dias de acesso</div>
+        <ul class="plan-features">
+          <li>Até 3 operadores</li>
+          <li>Odds em tempo real</li>
+          <li>Bilhete com QR Code</li>
+          <li class="nao">Nome personalizado</li>
+          <li class="nao">Cores personalizadas</li>
+          <li class="nao">Ajustes visuais</li>
+        </ul>
+        <a class="btn-primary-lg" href="https://wa.me/5581993265977?text=Quero%20o%20plano%20Padr%C3%A3o%20do%20Bet%20Local" target="_blank" rel="noopener" style="display:block;font-size:0.85rem;padding:12px;text-align:center;">Assinar</a>
       </div>
-      <ul class="competition-list" id="competicoes-lista"></ul>
-    </aside>
-
-    <main class="content">
-      <section class="hero-banner">
-        <div class="hero-copy">
-          <span class="eyebrow">Operação presencial</span>
-          <h1>Apostas locais com cupom rápido e odds salvas</h1>
-          <p>Monte o bilhete no balcão, gere o código e receba o pagamento no caixa.</p>
-        </div>
-        <div class="hero-panel">
-          <span>Retorno estimado</span>
-          <strong id="hero-return">R$ 0,00</strong>
-          <small>Calculado pelo cupom atual</small>
-        </div>
-      </section>
-
-      <section class="toolbar">
-        <div>
-          <h2>Principais jogos</h2>
-          <p>Odds 1X2 disponíveis para seleção imediata</p>
-        </div>
-        <div class="pill-tabs" aria-label="Filtros rápidos">
-          <button class="active" data-filter="all">Todos</button>
-          <button data-filter="live">Ao vivo</button>
-          <button data-filter="today">Hoje</button>
-        </div>
-      </section>
-
-      <section class="games-list" id="games-container" aria-live="polite"></section>
-    </main>
-
-    <aside class="ticket-sidebar" aria-label="Cupom de apostas">
-      <div class="ticket-header">
-        <div>
-          <span>Cupom</span>
-          <h2>Meu bilhete</h2>
-        </div>
-        <button id="limpar-ticket" class="ghost-btn" type="button">Limpar</button>
+      <div class="plan-card">
+        <div class="plan-name">⭐ Plus</div>
+        <div class="plan-price">R$ 180 <small>/mês</small></div>
+        <div class="plan-dias">30 dias de acesso</div>
+        <ul class="plan-features">
+          <li>Até 5 operadores</li>
+          <li>Odds em tempo real</li>
+          <li>Bilhete com QR Code</li>
+          <li>Nome personalizado</li>
+          <li class="nao">Cores personalizadas</li>
+          <li class="nao">Ajustes visuais</li>
+        </ul>
+        <a class="btn-primary-lg" href="https://wa.me/5581993265977?text=Quero%20o%20plano%20Plus%20do%20Bet%20Local" target="_blank" rel="noopener" style="display:block;font-size:0.85rem;padding:12px;text-align:center;">Assinar</a>
       </div>
-
-      <div id="ticket-list" class="ticket-list"></div>
-
-      <div class="ticket-footer">
-        <label class="field-label" for="cliente-aposta">Cliente (opcional)</label>
-        <select id="cliente-aposta" style="width:100%; border:1px solid var(--line); border-radius:8px; background:#080c13; color:var(--text); padding:10px 12px; margin-bottom:10px; font-size:0.9rem;">
-          <option value="">— Cliente não identificado —</option>
-        </select>
-        <label class="field-label" for="valor-aposta">Valor da aposta</label>
-        <div class="money-input">
-          <span>R$</span>
-          <input type="number" id="valor-aposta" placeholder="20,00" min="1" step="0.01">
-        </div>
-        <div class="ticket-row">
-          <span>Odd total</span>
-          <strong id="odd-total">1.00</strong>
-        </div>
-        <div class="ticket-row">
-          <span>Possível retorno</span>
-          <strong id="retorno-total">R$ 0,00</strong>
-        </div>
-        <button id="gerar-codigo" class="primary-btn" type="button">Gerar comprovante</button>
-        <div id="codigo-gerado" class="receipt-output" aria-live="polite"></div>
+      <div class="plan-card">
+        <div class="plan-name">👑 Master</div>
+        <div class="plan-price">R$ 200 <small>/mês</small></div>
+        <div class="plan-dias">30 dias de acesso</div>
+        <ul class="plan-features">
+          <li>Operadores ilimitados</li>
+          <li>Odds em tempo real</li>
+          <li>Bilhete com QR Code</li>
+          <li>Nome personalizado</li>
+          <li>Cores personalizadas</li>
+          <li>Ajustes visuais</li>
+        </ul>
+        <a class="btn-primary-lg" href="https://wa.me/5581993265977?text=Quero%20o%20plano%20Master%20do%20Bet%20Local" target="_blank" rel="noopener" style="display:block;font-size:0.85rem;padding:12px;text-align:center;">Assinar</a>
       </div>
-    </aside>
-  </div>
+    </div>
+  </section>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      var toggle = document.getElementById("menu-toggle");
-      var nav = document.getElementById("main-nav");
-      if (toggle && nav) {
-        toggle.addEventListener("click", function () {
-          nav.classList.toggle("main-nav--open");
-          toggle.classList.toggle("menu-toggle--open");
-        });
-      }
-    });
-  </script>
+  <!-- LOGIN -->
+  <section class="landing-section login-section" id="acesso">
+    <div class="login-box">
+      <h3>🔐 Entrar no painel</h3>
+      <p class="login-sub">Acesse sua conta para gerenciar sua casa de apostas</p>
+
+      <form id="login-form">
+        <label>Email
+          <input name="email" type="email" autocomplete="email" required placeholder="seu@email.com">
+        </label>
+        <label>Senha
+          <input name="password" type="password" autocomplete="current-password" required placeholder="Sua senha">
+        </label>
+        <button class="primary-btn" type="submit">Entrar</button>
+        <p class="error-msg" id="login-error"></p>
+      </form>
+
+      <p class="auth-hint" style="margin-top:6px;"><a href="tela-de-vendas.html" style="color:var(--orange);">← Ir para a tela de vendas</a></p>
+    </div>
+  </section>
+
+  <!-- WHATSAPP CTA -->
+  <section class="whatsapp-cta">
+    <h2>📞 Fale conosco</h2>
+    <p>Tire dúvidas, solicite uma demonstração ou contrate seu plano pelo WhatsApp</p>
+    <a class="btn-whatsapp" href="https://wa.me/5581993265977?text=Ol%C3%A1!%20Tenho%20interesse%20no%20Bet%20Local" target="_blank" rel="noopener">
+      📱 55 81 993265977
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="landing-footer">
+    <p>&copy; 2026 Bet Local — Sistema de apostas presenciais. Todos os direitos reservados.</p>
+  </footer>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/tenant.js"></script>
-  <script src="js/league-mapping.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/toast.js"></script>
-  <script src="js/ui-utils.js"></script>
-  <script src="js/caixa.js"></script>
-  <script src="js/crm.js"></script>
-  <script src="js/operador.js"></script>
   <script>
-    // Badge de fonte de dados (API real vs Demo)
-    window.addEventListener("betlocal:data-source", (e) => {
-      const badge = document.getElementById("data-source-badge");
-      if (!badge || !window.BetLocalConfig?.showDataSourceBadge) return;
-      const d = e.detail;
-      if (d.source === "api" || d.source === "api-football") {
-        badge.textContent = "⚡ API Ao Vivo";
-        badge.style.display = "inline-flex";
-        badge.style.background = "rgba(36,217,130,0.18)";
-        badge.style.color = "#a8f5ce";
-      } else if (d.source === "alt-api" || d.source === "openligadb") {
-        badge.textContent = "🟢 OpenLigaDB";
-        badge.style.display = "inline-flex";
-        badge.style.background = "rgba(59,130,246,0.18)";
-        badge.style.color = "#93c5fd";
-      } else if (d.source === "api-error") {
-        badge.textContent = "⚠️ API Offline";
-        badge.style.display = "inline-flex";
-        badge.style.background = "rgba(255,200,87,0.18)";
-        badge.style.color = "#ffe09a";
-      } else {
-        badge.textContent = "📋 Demo";
-        badge.style.display = "inline-flex";
-        badge.style.background = "rgba(156,168,186,0.12)";
-        badge.style.color = "#d5dbe5";
-      }
-    });
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const clientId = params.get("cliente") || "local";
+      const client = window.BetLocalTenant.getClientById(clientId);
+      const theme = client?.tema || {};
 
-    // Popular seletor de clientes
-    function populateClientes() {
-      const select = document.getElementById("cliente-aposta");
-      if (!select || !window.BetLocalOperador?.getClientes) return;
-      const clientes = window.BetLocalOperador.getClientes();
-      select.innerHTML = '<option value="">— Cliente não identificado —</option>' +
-        clientes.map(c => `<option value="${c.id}">${c.nome} ${c.telefone ? '(' + c.telefone + ')' : ''}</option>`).join("");
-    }
-    populateClientes();
-    window.addEventListener("storage", (e) => {
-      if (e.key === "betlocal.operador.clientes") populateClientes();
-    });
+      if (theme.cor_primaria) {
+        document.documentElement.style.setProperty("--orange", theme.cor_primaria);
+      }
+      document.querySelectorAll("[data-brand-name]").forEach(el => {
+        el.textContent = theme.nome_sistema || client?.nome || "Bet Local";
+      });
+      document.querySelectorAll(".brand-mark").forEach(el => {
+        if (theme.logo_url) {
+          el.style.background = `url("${theme.logo_url}") center/cover`;
+          el.textContent = "";
+        } else {
+          el.textContent = (theme.nome_sistema || client?.nome || "BL").slice(0, 2).toUpperCase();
+        }
+      });
+
+      document.getElementById("login-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = new FormData(e.currentTarget);
+        const errorEl = document.getElementById("login-error");
+        errorEl.textContent = "";
+
+        try {
+          const session = await window.BetLocalTenant.signIn(
+            String(form.get("email")),
+            String(form.get("password"))
+          );
+          const roleTargets = { super_admin: "admin-master.html", dono: "operador.html", operador: "operador.html" };
+          const target = roleTargets[session.role] || "admin-master.html";
+          window.location.href = `${target}?cliente=${encodeURIComponent(client.id)}`;
+        } catch (err) {
+          errorEl.textContent = err.message || "Email ou senha inválidos.";
+        }
+      });
+    })();
   </script>
 </body>
 </html>

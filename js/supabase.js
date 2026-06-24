@@ -42,6 +42,9 @@ function rowToBet(row) {
 
 let _realtimeChannel = null;
 
+const TEAM_LOGOS_TABLE = "team_logos";
+const TEAM_LOGOS_BUCKET = "team-logos";
+
 window.BetLocalSupabase = {
   client: betLocalSupabaseClient,
 
@@ -141,5 +144,80 @@ window.BetLocalSupabase = {
       this.client.removeChannel(_realtimeChannel);
       _realtimeChannel = null;
     }
+  },
+
+  // ==================== TEAM LOGOS ====================
+
+  async fetchAllTeamLogos() {
+    if (!this.client) return [];
+    const { data, error } = await this.client
+      .from(TEAM_LOGOS_TABLE)
+      .select("team_name, logo_url, storage_path, updated_at")
+      .order("team_name", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async saveTeamLogo(teamName, logoUrl, storagePath) {
+    if (!this.client) return { ok: false, skipped: true };
+    const { error } = await this.client
+      .from(TEAM_LOGOS_TABLE)
+      .upsert({
+        team_name: teamName,
+        logo_url: logoUrl,
+        storage_path: storagePath || null
+      }, { onConflict: "team_name" });
+    if (error) throw error;
+    return { ok: true };
+  },
+
+  async deleteTeamLogo(teamName) {
+    if (!this.client) return { ok: false, skipped: true };
+    const { error } = await this.client
+      .from(TEAM_LOGOS_TABLE)
+      .delete()
+      .eq("team_name", teamName);
+    if (error) throw error;
+    return { ok: true };
+  },
+
+  async uploadTeamLogoImage(file, teamName) {
+    if (!this.client) return { ok: false, skipped: true, url: null };
+    const ext = file.name.split(".").pop() || "png";
+    const fileName = `logos/${teamName.replace(/[^a-zA-Z0-9_-]/g, "_")}.${ext}`;
+
+    const { error: uploadError } = await this.client
+      .storage
+      .from(TEAM_LOGOS_BUCKET)
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = this.client
+      .storage
+      .from(TEAM_LOGOS_BUCKET)
+      .getPublicUrl(fileName);
+
+    const logoUrl = urlData?.publicUrl || `${SUPABASE_URL}/storage/v1/object/public/${TEAM_LOGOS_BUCKET}/${fileName}`;
+    return { ok: true, url: logoUrl, storagePath: fileName };
+  },
+
+  async deleteTeamLogoImage(storagePath) {
+    if (!this.client || !storagePath) return { ok: false, skipped: true };
+    const { error } = await this.client
+      .storage
+      .from(TEAM_LOGOS_BUCKET)
+      .remove([storagePath]);
+    if (error) throw error;
+    return { ok: true };
+  },
+
+  async syncTeamLogosFromLocal(teamName, logoUrl) {
+    if (!this.client || !teamName || !logoUrl) return null;
+    const existing = await this.fetchAllTeamLogos();
+    const found = existing.find(t => t.team_name === teamName);
+    if (found) return found.logo_url;
+    await this.saveTeamLogo(teamName, logoUrl);
+    return logoUrl;
   }
 };

@@ -104,6 +104,10 @@ function getClientId() {
   return window.BetLocalTenant?.getCurrentClient?.()?.id || "local";
 }
 
+function isDemoClient() {
+  return getClientId() === "demo";
+}
+
 function storageKey(key) {
   return `${key}.${getClientId()}`;
 }
@@ -484,13 +488,15 @@ const TicketManager = {
       pagamento: "Pendente"
     };
 
-    const history = getBetHistory();
-    history.unshift(bet);
-    saveBetHistory(history);
-    syncBetToSupabase(bet);
+    if (!isDemoClient()) {
+      const history = getBetHistory();
+      history.unshift(bet);
+      saveBetHistory(history);
+      syncBetToSupabase(bet);
+    }
 
     if (display) {
-      const qrUrl = `${window.location.origin}${window.location.pathname.replace("index.html", "verificar.html")}?codigo=${encodeURIComponent(code)}`;
+      const qrUrl = `${window.location.origin}${window.location.pathname.replace(/index\.html|tela-de-vendas\.html/, "verificar.html")}?codigo=${encodeURIComponent(code)}`;
       display.innerHTML = `
         <div class="receipt-card">
           <small>Código gerado</small>
@@ -504,7 +510,7 @@ const TicketManager = {
             <button class="status-btn" type="button" onclick="window.BetLocalOperador?.shareTelegram?.(${JSON.stringify(bet).replace(/"/g, '&quot;')})">✈️ Telegram</button>
             <button class="status-btn" type="button" onclick="window.BetLocalOperador?.printBilhete?.(${JSON.stringify(bet).replace(/"/g, '&quot;')})">🖨️ Imprimir</button>
           </div>
-          <small>Escaneie o QR Code para acompanhar sua aposta em tempo real.</small>
+          ${isDemoClient() ? '<small style="color:#f59e0b;font-weight:700;">🔬 Modo Demonstração — Esta aposta não foi salva</small>' : '<small>Escaneie o QR Code para acompanhar sua aposta em tempo real.</small>'}
         </div>
       `;
       
@@ -577,11 +583,16 @@ function getBetHistory() {
 }
 
 function saveBetHistory(history) {
+  if (isDemoClient()) {
+    window.dispatchEvent(new CustomEvent("betlocal:history-updated"));
+    return;
+  }
   localStorage.setItem(storageKey(STORAGE_KEYS.history), JSON.stringify(history));
   window.dispatchEvent(new CustomEvent("betlocal:history-updated"));
 }
 
 async function syncBetToSupabase(bet) {
+  if (isDemoClient()) return;
   if (!window.BetLocalSupabase?.isEnabled()) return;
 
   try {

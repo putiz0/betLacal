@@ -37,6 +37,7 @@ function initMaster(session) {
 
   if (isSuper) {
     initClientesSaaS();
+    initEscudos();
   }
 
   initCasa();
@@ -719,6 +720,201 @@ function renderUsers() {
       });
     });
   });
+}
+
+/* ========== GERENCIAR ESCUDOS ========== */
+
+let escudosData = [];
+
+async function initEscudos() {
+  await window.loadLogosFromSupabasePromise;
+  escudosData = window.LOGOS_FROM_SUPABASE ? Object.entries(window.LOGOS_FROM_SUPABASE).map(([k, v]) => ({ team_name: k, logo_url: v })) : [];
+  renderEscudoList();
+
+  const datalist = document.getElementById("escudo-datalist");
+  if (datalist) {
+    const allNames = new Set();
+    if (window.TEAM_LOGOS) Object.keys(window.TEAM_LOGOS).forEach(n => allNames.add(n));
+    if (window.EXTRA_TEAM_LOGOS) Object.keys(window.EXTRA_TEAM_LOGOS).forEach(n => allNames.add(n));
+    escudosData.forEach(e => allNames.add(e.team_name));
+    datalist.innerHTML = [...allNames].sort().map(n => `<option value="${esc(n)}">`).join("");
+  }
+
+  document.getElementById("escudo-form")?.addEventListener("submit", onEscudoSubmit);
+  document.getElementById("escudo-remove")?.addEventListener("click", onEscudoRemove);
+  document.getElementById("escudo-sync")?.addEventListener("click", onEscudoSync);
+  document.getElementById("escudo-search")?.addEventListener("input", onEscudoSearch);
+  document.getElementById("escudo-team-name")?.addEventListener("input", onEscudoTeamNameChange);
+  document.getElementById("escudo-file")?.addEventListener("change", onEscudoFileChange);
+}
+
+function renderEscudoList(filter = "") {
+  const container = document.getElementById("escudo-list");
+  if (!container) return;
+  const q = filter.toLowerCase().trim();
+  const items = q ? escudosData.filter(e => e.team_name.toLowerCase().includes(q)) : escudosData;
+  if (!items.length) {
+    container.innerHTML = `<p style="color:var(--muted);grid-column:1/-1;text-align:center;padding:30px 0;">Nenhum escudo cadastrado.</p>`;
+    return;
+  }
+  container.innerHTML = items.map(e => `
+    <div class="escudo-card" data-team="${esc(e.team_name)}" style="cursor:pointer;">
+      <img src="${esc(e.logo_url)}" alt="${esc(e.team_name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <span class="escudo-fallback" style="display:none;width:48px;height:48px;border-radius:50%;background:var(--surface-2);align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:var(--muted);">${esc(e.team_name).slice(0, 2).toUpperCase()}</span>
+      <span class="escudo-name">${esc(e.team_name)}</span>
+    </div>
+  `).join("");
+  container.querySelectorAll(".escudo-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const name = card.dataset.team;
+      const entry = escudosData.find(e => e.team_name === name);
+      if (!entry) return;
+      document.getElementById("escudo-team-name").value = name;
+      document.getElementById("escudo-url").value = entry.logo_url;
+      document.getElementById("escudo-file").value = "";
+      updateEscudoPreview(entry.logo_url);
+      document.getElementById("escudo-remove").style.display = "";
+    });
+  });
+}
+
+function updateEscudoPreview(url) {
+  const preview = document.getElementById("escudo-preview");
+  if (!preview) return;
+  if (url) {
+    preview.innerHTML = `<img src="${esc(url)}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;" onerror="this.outerHTML='<span style=\\'font-size:1.5rem;font-weight:800;color:var(--muted);\\'>?</span>'">`;
+  } else {
+    preview.innerHTML = "?";
+  }
+}
+
+function onEscudoTeamNameChange() {
+  const name = this.value.trim();
+  const entry = escudosData.find(e => e.team_name === name);
+  if (entry) {
+    document.getElementById("escudo-url").value = entry.logo_url;
+    updateEscudoPreview(entry.logo_url);
+    document.getElementById("escudo-remove").style.display = "";
+  } else {
+    document.getElementById("escudo-remove").style.display = "none";
+  }
+}
+
+function onEscudoFileChange() {
+  const file = this.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => updateEscudoPreview(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+async function onEscudoSubmit(e) {
+  e.preventDefault();
+  const form = new FormData(e.currentTarget);
+  let teamName = String(form.get("team_name") || "").trim();
+  if (!teamName) return showToast("Informe o nome do time.", "error");
+
+  const fileInput = document.getElementById("escudo-file");
+  const file = fileInput?.files?.[0];
+  const urlInput = String(form.get("logo_url") || "").trim();
+
+  let logoUrl = "";
+  let storagePath = null;
+
+  try {
+    if (file) {
+      const result = await window.BetLocalSupabase.uploadTeamLogoImage(file, teamName);
+      if (!result.ok) throw new Error("Falha no upload");
+      logoUrl = result.url;
+      storagePath = result.storagePath;
+    } else if (urlInput) {
+      logoUrl = urlInput;
+    } else {
+      return showToast("Informe uma URL ou selecione uma imagem.", "error");
+    }
+
+    await window.BetLocalSupabase.saveTeamLogo(teamName, logoUrl, storagePath);
+    showToast(`Escudo de "${teamName}" salvo!`);
+
+    if (window.LOGOS_FROM_SUPABASE) {
+      window.LOGOS_FROM_SUPABASE[teamName] = logoUrl;
+    }
+    const idx = escudosData.findIndex(e => e.team_name === teamName);
+    if (idx >= 0) escudosData[idx] = { team_name: teamName, logo_url: logoUrl };
+    else escudosData.push({ team_name: teamName, logo_url: logoUrl });
+    renderEscudoList(document.getElementById("escudo-search")?.value || "");
+    document.getElementById("escudo-remove").style.display = "";
+  } catch (err) {
+    showToast(err.message || "Erro ao salvar escudo.", "error");
+  }
+}
+
+async function onEscudoRemove() {
+  const name = document.getElementById("escudo-team-name")?.value?.trim();
+  if (!name) return;
+  const ok = await showConfirm(`Remover escudo de "${name}"?`);
+  if (!ok) return;
+
+  try {
+    const entry = escudosData.find(e => e.team_name === name);
+    if (entry?.storage_path) {
+      await window.BetLocalSupabase.deleteTeamLogoImage(entry.storage_path);
+    }
+    await window.BetLocalSupabase.deleteTeamLogo(name);
+    showToast(`Escudo de "${name}" removido.`);
+
+    if (window.LOGOS_FROM_SUPABASE) delete window.LOGOS_FROM_SUPABASE[name];
+    escudosData = escudosData.filter(e => e.team_name !== name);
+    renderEscudoList(document.getElementById("escudo-search")?.value || "");
+    document.getElementById("escudo-team-name").value = "";
+    document.getElementById("escudo-url").value = "";
+    document.getElementById("escudo-file").value = "";
+    updateEscudoPreview("");
+    document.getElementById("escudo-remove").style.display = "none";
+  } catch (err) {
+    showToast(err.message || "Erro ao remover escudo.", "error");
+  }
+}
+
+function onEscudoSearch() {
+  renderEscudoList(this.value);
+}
+
+async function onEscudoSync() {
+  const btn = document.getElementById("escudo-sync");
+  if (!btn) return;
+  btn.textContent = "⏳ Sincronizando...";
+  btn.disabled = true;
+
+  try {
+    const allNames = new Set();
+    if (window.TEAM_LOGOS) Object.keys(window.TEAM_LOGOS).forEach(n => allNames.add(n));
+
+    const extrasPromise = window.loadExtraTeamLogosPromise || Promise.resolve();
+    await extrasPromise;
+    if (window.EXTRA_TEAM_LOGOS) Object.keys(window.EXTRA_TEAM_LOGOS).forEach(n => allNames.add(n));
+
+    let synced = 0;
+    for (const name of allNames) {
+      if (escudosData.some(e => e.team_name === name)) continue;
+      const url = window.TEAM_LOGOS?.[name] || window.EXTRA_TEAM_LOGOS?.[name];
+      if (!url) continue;
+      try {
+        await window.BetLocalSupabase.saveTeamLogo(name, url);
+        if (window.LOGOS_FROM_SUPABASE) window.LOGOS_FROM_SUPABASE[name] = url;
+        escudosData.push({ team_name: name, logo_url: url });
+        synced++;
+      } catch { /* skip individual errors */ }
+    }
+
+    renderEscudoList(document.getElementById("escudo-search")?.value || "");
+    showToast(`${synced} escudos sincronizados do cache local!`);
+  } catch (err) {
+    showToast(err.message || "Erro na sincronização.", "error");
+  } finally {
+    btn.textContent = "🔄 Sincronizar do TheSportsDB";
+    btn.disabled = false;
+  }
 }
 
 function esc(str) {

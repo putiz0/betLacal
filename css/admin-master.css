@@ -69,5 +69,13 @@
 .inline-form-user label { display:grid; gap:5px; font-size:0.85rem; color:var(--soft); }
 .inline-form-user input, .inline-form-user select { width:100%; border:1px solid var(--line); border-radius:8px; background:#080c13; color:var(--text); padding:8px 10px; }
 
+.escudo-card { display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; border:1px solid var(--line); background:var(--surface); transition:all 0.15s; }
+.escudo-card:hover { border-color:var(--orange); background:rgba(255,90,22,0.05); }
+.escudo-card img { width:36px; height:36px; object-fit:contain; border-radius:4px; }
+.escudo-card .escudo-name { font-size:0.85rem; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#escudo-list { max-height:500px; overflow-y:auto; padding-right:4px; }
+#escudo-list::-webkit-scrollbar { width:4px; }
+#escudo-list::-webkit-scrollbar-thumb { background:var(--line); border-radius:4px; }
+
 @media (max-width:1100px) { .two-col-master { grid-template-columns:1fr; } .stats-row { grid-template-columns:repeat(2,minmax(0,1fr)); } .inline-form-user { grid-template-columns:1fr 1fr; } }
 @media (max-width:860px) { .master-content { margin-left:0; } .master-sidebar { position:static; width:auto; height:auto; border-right:0; border-bottom:1px solid var(--line); } .stats-row { grid-template-columns:1fr; } .master-section { padding:14px; } .filter-bar { flex-direction:column; align-items:stretch; } .filter-bar input[type="search"] { min-width:auto; } .inline-form-user { grid-template-columns:1fr; } }

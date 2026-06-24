@@ -136,11 +136,6 @@
       <h3>🔐 Entrar no painel</h3>
       <p class="login-sub">Acesse sua conta para gerenciar sua casa de apostas</p>
 
-      <div class="url-box" id="url-info" style="display:none;">
-        <small>🔗 Sua URL de acesso</small>
-        <code id="client-url"></code>
-      </div>
-
       <form id="login-form">
         <label>Email
           <input name="email" type="email" autocomplete="email" required placeholder="seu@email.com">
@@ -152,8 +147,7 @@
         <p class="error-msg" id="login-error"></p>
       </form>
 
-      <p class="auth-hint" id="login-hint"></p>
-      <p class="auth-hint" style="margin-top:6px;"><a href="index.html" style="color:var(--orange);">← Voltar para a tela de vendas</a></p>
+      <p class="auth-hint" style="margin-top:6px;"><a href="tela-de-vendas.html" style="color:var(--orange);">← Ir para a tela de vendas</a></p>
     </div>
   </section>
 
@@ -197,20 +191,6 @@
           el.textContent = (theme.nome_sistema || client?.nome || "BL").slice(0, 2).toUpperCase();
         }
       });
-
-      // Mostra URL de acesso
-      const baseUrl = window.location.origin + window.location.pathname.replace("login.html", "index.html");
-      const accessUrl = `${baseUrl}?cliente=${encodeURIComponent(client.id)}`;
-      document.getElementById("client-url").textContent = accessUrl;
-      document.getElementById("url-info").style.display = "block";
-
-      // Dica de login
-      const users = client?.usuarios || [];
-      if (users.length) {
-        const first = users[0];
-        document.getElementById("login-hint").textContent =
-          `Dica: ${first.email} / ${first.senha_demo} (${first.role})`;
-      }
 
       // Login
       document.getElementById("login-form").addEventListener("submit", async (e) => {

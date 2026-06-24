@@ -94,7 +94,7 @@
       setInterval(updateClock, 1000);
 
       // QR Code
-      const url = window.location.origin + window.location.pathname.replace("tv.html", "index.html");
+      const url = window.location.origin + window.location.pathname.replace("tv.html", "tela-de-vendas.html");
       QRCode.toCanvas(document.getElementById("tv-qr-code"), url, { width: 108, margin: 1 }, (err) => {
         if (err) console.error(err);
       });
