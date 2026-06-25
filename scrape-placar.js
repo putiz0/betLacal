@@ -2,6 +2,13 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const OddsCalc = require('./js/odds-calc.js');
+
+const TOR_PROXY = process.env.TOR_PROXY;
+const BROWSER_ARGS = ['--disable-blink-features=AutomationControlled'];
+const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
+
+let ESTATISTICAS = {};
 
 function log(level, msg) {
   const ts = new Date().toISOString();
@@ -151,6 +158,16 @@ function saveLogos() {
   } catch (e) {
     log('WARN', `LOGOS: Erro ao salvar cache: ${e.message}`);
   }
+}
+
+function loadStats() {
+  try {
+    const file = path.join(__dirname, 'api', 'estatisticas.json');
+    if (fs.existsSync(file)) {
+      const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
+      ESTATISTICAS = data.times || {};
+    }
+  } catch (e) {}
 }
 
 function stripYouthSuffix(name) {
@@ -480,11 +497,17 @@ async function scrapePlacar() {
   log('INFO', 'Iniciando scraper do Placar de Futebol...');
   log('INFO', 'URL: https://www.placardefutebol.com.br/jogos-de-hoje');
 
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  loadStats();
+  log('INFO', `STATS: ${Object.keys(ESTATISTICAS).length} times com estatisticas carregadas.`);
+
+  const torProxy = TOR_PROXY ? { server: TOR_PROXY } : undefined;
+  if (torProxy) log('INFO', `TOR: Usando proxy ${TOR_PROXY}`);
+  const browser = await chromium.launch({ headless: true, args: BROWSER_ARGS, proxy: torProxy });
+  const ctx = await browser.newContext({ userAgent: BROWSER_UA });
+  const page = await ctx.newPage();
+  await page.addInitScript(() => { Object.defineProperty(navigator, 'webdriver', { get: () => false }); });
 
   await page.setExtraHTTPHeaders({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
     'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
     'Referer': 'https://www.placardefutebol.com.br/',
@@ -513,16 +536,18 @@ async function scrapePlacar() {
         let hora = null;
         let status = 'Pre-jogo';
         const horaMatch = statusText.match(/(\d{1,2}:\d{2})/);
-        if (horaMatch) hora = horaMatch[1];
 
-        if (upper.includes('AO VIVO') || upper.includes('VIVO') || upper.includes('1º TEMPO') || upper.includes('2º TEMPO') || upper.includes('INTERVALO')) {
-          status = 'Ao vivo';
-        } else if (upper.includes('ENCERRADO') || upper.includes('FINAL') || upper.includes('FIM')) {
+        if (upper.includes('ENCERRADO') || upper.includes('FINAL') || upper.includes('FIM')) {
           status = 'Encerrado';
         } else if (upper.includes('ADIADO') || upper.includes('CANCELADO') || upper.includes('SUSPENSO')) {
           status = 'Adiado';
+        } else if (upper.includes('AO VIVO') || upper.includes('VIVO') || upper.includes('1º TEMPO') || upper.includes('2º TEMPO') || upper.includes('INTERVALO')) {
+          status = 'Ao vivo';
+          hora = null;
         } else if (upper.startsWith('HOJE') || upper.startsWith('AMANHÃ') || upper.startsWith('AMANHA')) {
           hora = horaMatch ? horaMatch[1] : null;
+        } else if (horaMatch) {
+          hora = horaMatch[1];
         }
         return { status, hora };
       }
@@ -646,17 +671,36 @@ async function scrapePlacar() {
       }
 
       jogos.forEach(j => {
-        const seed = makeSeed(j.time_casa, j.time_fora);
-        const homeStrength = makeSeed(j.time_casa, j.time_casa);
-        const awayStrength = makeSeed(j.time_fora, j.time_fora);
-        const homeFavored = homeStrength >= awayStrength;
-        j.odds_1x2 = {
-          casa: reduceOdd(decimalOdd(seed, homeFavored ? 1.55 : 1.85)),
-          empate: reduceOdd(decimalOdd(seed + 1, 2.75)),
-          fora: reduceOdd(decimalOdd(seed + 2, homeFavored ? 1.85 : 1.55)),
-        };
-        j.allow_aposta = true;
-        j.mercados = buildDemoMarkets(j.time_casa, j.time_fora);
+        j.allow_aposta = j.status === 'Pre-jogo';
+        const homeStats = ESTATISTICAS[j.time_casa];
+        const awayStats = ESTATISTICAS[j.time_fora];
+        if (homeStats && awayStats) {
+          const s = OddsCalc.extractStatsFromJogo({ _estatisticas: ESTATISTICAS, time_casa: j.time_casa, time_fora: j.time_fora });
+          const leagueAvg = 1.35;
+          var lambdaHome = OddsCalc.calculateGoalExpectancy(
+            { avg_gf: s.homeAvgGf, avg_ga: s.homeAvgGa },
+            { avg_gf: s.awayAvgGf, avg_ga: s.awayAvgGa },
+            leagueAvg
+          );
+          var lambdaAway = OddsCalc.calculateGoalExpectancy(
+            { avg_gf: s.awayAvgGf, avg_ga: s.awayAvgGa },
+            { avg_gf: s.homeAvgGf, avg_ga: s.homeAvgGa },
+            leagueAvg
+          );
+          j.odds_1x2 = OddsCalc.calculateMatchOdds1X2(lambdaHome, lambdaAway);
+          j.mercados = OddsCalc.buildMarketsFromStats(j.time_casa, j.time_fora, ESTATISTICAS);
+        } else {
+          const seed = makeSeed(j.time_casa, j.time_fora);
+          const homeStrength = makeSeed(j.time_casa, j.time_casa);
+          const awayStrength = makeSeed(j.time_fora, j.time_fora);
+          const homeFavored = homeStrength >= awayStrength;
+          j.odds_1x2 = {
+            casa: reduceOdd(decimalOdd(seed, homeFavored ? 1.55 : 1.85)),
+            empate: reduceOdd(decimalOdd(seed + 1, 2.75)),
+            fora: reduceOdd(decimalOdd(seed + 2, homeFavored ? 1.85 : 1.55)),
+          };
+          j.mercados = buildDemoMarkets(j.time_casa, j.time_fora);
+        }
       });
 
       const oddsCount = jogos.filter(j => j.odds_1x2).length;

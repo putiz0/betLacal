@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 function renderMatchBanner(jogo) {
   const banner = document.getElementById("match-banner");
   const score = jogo.placar ? jogo.placar.split("-").map((part) => part.trim()) : ["-", "-"];
-  const isLive = jogo.status?.toLowerCase().includes("vivo");
+  const isLive = (jogo.status?.toLowerCase().includes("vivo") || jogo.status?.toLowerCase().includes("live") || ["1H", "2H", "HT", "ET", "BT", "P", "LIVE"].includes(jogo.status_api));
 
   banner.innerHTML = `
     <div class="match-banner-inner">

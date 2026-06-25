@@ -174,57 +174,65 @@ function normalizeMarket(market) {
 async function fetchJogos() {
   const mode = window.BetLocalConfig?.gameMode || "auto";
 
-  // Tenta cada fonte; só aceita se tiver jogos de hoje/futuro E pelo menos um apostável
+  // Carregar estatisticas se disponivel
+  if (!window.ESTATISTICAS) {
+    try {
+      const r = await fetch("api/estatisticas.json", { cache: "no-store" });
+      if (r.ok) {
+        const data = await r.json();
+        window.ESTATISTICAS = data.times || {};
+      }
+    } catch (e) {}
+  }
+
+  // Tenta cada fonte; só aceita se tiver jogos de hoje/futuro
   const trySource = async (fetcher, sourceName) => {
     try {
       const dados = await fetcher();
-      if (!Array.isArray(dados) || !dados.length) return null;
+      if (!Array.isArray(dados) || !dados.length) {
+        console.warn(`[fetchJogos] ${sourceName}: array vazio`);
+        return null;
+      }
       await enrichJogosWithLogos(dados);
       const normalized = dados.map(normalizeGame);
       const upcoming = normalized.filter(j => isUpcomingGame(j._dateObj));
-      const bettable = upcoming.filter(j => isGameBettable(j));
-      if (bettable.length) return { jogos: upcoming, source: sourceName };
+      console.log(`[fetchJogos] ${sourceName}: ${normalized.length} jogos, ${upcoming.length} upcoming`);
+      if (upcoming.length) return { jogos: upcoming, source: sourceName };
+      console.warn(`[fetchJogos] ${sourceName}: ${normalized.length} jogos encontrados, mas nenhum é hoje/futuro`);
     } catch (e) {
-      console.warn(`${sourceName} falhou:`, e.message);
+      console.warn(`[fetchJogos] ${sourceName} falhou:`, e.message);
     }
     return null;
   };
 
   const placar = () =>
     fetch("api/placar-jogos.json", { cache: "no-store" })
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(d => d.jogos || []);
-
-  const edge = () => {
-    const url = window.BetLocalConfig?.getBackendUrl?.("/jogos") ||
-      "https://uagwqerjcjjlnftytkqe.supabase.co/functions/v1/api-football/jogos";
-    return fetch(url, { cache: "no-store" })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => (d.jogos || []));
-  };
-
-  const altApi = () => fetchJogosAlternative();
 
   const fakeJson = () =>
     fetch("api/fake-api.json", { cache: "no-store" })
-      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(d => d.jogos || []);
 
   let result = null;
 
   if (mode !== "demo") {
     result = await trySource(placar, "placar");
-    if (!result) result = await trySource(edge, "api");
-    if (!result) result = await trySource(altApi, "alt-api");
   }
 
-  if (!result) result = await trySource(fakeJson, "fake-api");
   if (!result) {
+    console.warn("[fetchJogos] placar sem dados, tentando fake-api.json...");
+    result = await trySource(fakeJson, "fake-api");
+  }
+  if (!result) {
+    console.warn("[fetchJogos] fake-api sem dados, usando DEMO_DATA interno...");
     const demo = DEMO_DATA.jogos;
     await enrichJogosWithLogos(demo);
     result = { jogos: demo.map(normalizeGame), source: "demo-builtin" };
   }
 
+  console.log(`[fetchJogos] Fonte usada: ${result.source} (${result.jogos.length} jogos)`);
   window.dispatchEvent(new CustomEvent("betlocal:data-source", { detail: { source: result.source, count: result.jogos.length } }));
   return result.jogos;
 }
@@ -269,7 +277,7 @@ function normalizeDate(rawDate) {
     const [day, month, year] = rawDate.split("/").map(Number);
     matchDate = new Date(year, month - 1, day);
   } else if (/^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
-    matchDate = new Date(rawDate.slice(0, 10) + "T12:00:00");
+    matchDate = new Date(rawDate.slice(0, 10) + "T00:00:00-03:00");
   }
 
   let display = rawDate;
@@ -692,28 +700,27 @@ async function fetchFixtureStatuses(ids) {
   const cleanIds = [...new Set(ids.map(String).filter(Boolean))];
   if (!cleanIds.length) return [];
 
-  const backendUrl =
-    window.BetLocalConfig?.getBackendUrl?.("/status") ||
-    "https://uagwqerjcjjlnftytkqe.supabase.co/functions/v1/api-football/status";
-
-  const response = await fetch(
-    `${backendUrl}?ids=${cleanIds.join("-")}`,
-    { cache: "no-store" }
-  );
-  if (!response.ok) throw new Error("Nao foi possivel consultar resultados.");
-  const data = await response.json();
-
-  // Mapear resposta da API-Football para o formato que o front espera
-  return (data.response || []).map((f) => ({
-    id: String(f.fixture.id),
-    status: f.fixture.status?.short || "NS",
-    elapsed: f.fixture.status?.elapsed ?? null,
-    placar: f.goals?.home !== null && f.goals?.away !== null
-      ? `${f.goals.home} - ${f.goals.away}`
-      : null,
-    home: f.teams?.home?.name,
-    away: f.teams?.away?.name,
-  }));
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const url = `https://api.openligadb.de/getmatchdata/${today}`;
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return [];
+    const matches = await response.json();
+    return matches
+      .filter(m => cleanIds.includes(String(m.matchID)))
+      .map(m => ({
+        id: String(m.matchID),
+        status: m.matchIsFinished ? "FT" : m.matchDateTime ? "NS" : "NS",
+        elapsed: null,
+        placar: m.matchResults?.find(r => r.resultName === "Endergebnis")
+          ? `${m.matchResults.find(r => r.resultName === "Endergebnis").pointsTeam1} - ${m.matchResults.find(r => r.resultName === "Endergebnis").pointsTeam2}`
+          : null,
+        home: m.team1?.teamName,
+        away: m.team2?.teamName,
+      }));
+  } catch {
+    return [];
+  }
 }
 
 function renderOddButton(jogo, mercado, opcao, odd) {
@@ -778,8 +785,12 @@ function getUniqueMarkets(jogos) {
   jogos.forEach(j => (j.mercados || []).forEach(m => set.add(m.nome)));
   const arr = [...set];
   if (arr.length <= 1 && jogos.length > 0) {
-    const demo = buildDemoMarkets("Time", "Time");
-    demo.forEach(m => { if (!arr.includes(m.nome)) arr.push(m.nome); });
+    const first = jogos[0];
+    const stats = window.ESTATISTICAS;
+    const fallback = (stats && stats[first.time_casa] && stats[first.time_fora])
+      ? OddsCalc.buildMarketsFromStats(first.time_casa, first.time_fora, stats)
+      : buildDemoMarkets(first.time_casa, first.time_fora);
+    fallback.forEach(m => { if (!arr.includes(m.nome)) arr.push(m.nome); });
   }
   return arr;
 }
@@ -794,8 +805,12 @@ function getMarketOdds(jogo, marketName) {
   }
   const fromMercados = (jogo.mercados || []).find(m => m.nome === marketName);
   if (fromMercados) return fromMercados.opcoes;
-  const fromDemo = buildDemoMarkets(jogo.time_casa, jogo.time_fora).find(m => m.nome === marketName);
-  return fromDemo ? fromDemo.opcoes : null;
+  const stats = window.ESTATISTICAS;
+  const fallbackMarkets = (stats && stats[jogo.time_casa] && stats[jogo.time_fora])
+    ? OddsCalc.buildMarketsFromStats(jogo.time_casa, jogo.time_fora, stats)
+    : buildDemoMarkets(jogo.time_casa, jogo.time_fora);
+  const fromFallback = fallbackMarkets.find(m => m.nome === marketName);
+  return fromFallback ? fromFallback.opcoes : null;
 }
 
 function renderMarketTabs(markets, active, onSelect) {
@@ -831,7 +846,7 @@ function renderHomeJogos(jogos, activeMarket) {
   }
 
   container.innerHTML = jogos.map((jogo) => {
-    const isLive = jogo.status?.toLowerCase().includes("vivo");
+    const isLive = jogo.status?.toLowerCase().includes("vivo") || jogo.status?.toLowerCase().includes("live") || ["1H", "2H", "HT", "ET", "BT", "P", "LIVE"].includes(jogo.status_api);
     const allowBet = isGameBettable(jogo);
     const odds = getMarketOdds(jogo, activeMarket);
     if (!odds) return "";
@@ -917,7 +932,7 @@ function initHome() {
         const leagueOk = currentLeague === "all" || jogo.campeonato === currentLeague;
         const filterOk =
           currentFilter === "all" ||
-          (currentFilter === "live" && jogo.status?.toLowerCase().includes("vivo")) ||
+          (currentFilter === "live" && (jogo.status?.toLowerCase().includes("vivo") || jogo.status?.toLowerCase().includes("live") || ["1H", "2H", "HT", "ET", "BT", "P", "LIVE"].includes(jogo.status_api))) ||
           (currentFilter === "today" && jogo.data?.toLowerCase() === "hoje");
         const searchOk = !term || `${jogo.time_casa} ${jogo.time_fora} ${jogo.campeonato}`.toLowerCase().includes(term);
         const dateOk = currentFilter !== "all" || isUpcomingGame(jogo._dateObj);
@@ -955,6 +970,14 @@ function initHome() {
         applyFilters();
       });
     });
+  }).catch((err) => {
+    console.error("[initHome] Erro ao carregar jogos:", err);
+    const container = document.getElementById("games-container");
+    if (container) {
+      container.innerHTML = `<div class="empty-ticket">Erro ao carregar jogos. Verifique o console (F12).</div>`;
+    }
+    const totalGames = document.getElementById("total-games");
+    if (totalGames) totalGames.textContent = "0 jogos";
   });
 }
 
@@ -1274,10 +1297,14 @@ async function fetchJogosAlternative() {
         const matchDate = new Date(m.matchDateTimeUTC || m.matchDateTime);
         const matchDateStr = matchDate.toISOString().slice(0, 10);
 
+        const homeName = home.teamName || "Mandante";
+        const awayName = away.teamName || "Visitante";
+        const stats = window.ESTATISTICAS;
+        const hasStats = stats && stats[homeName] && stats[awayName];
         allJogos.push({
           id: m.matchID || Math.random().toString(36).slice(2),
-          time_casa: home.teamName || "Mandante",
-          time_fora: away.teamName || "Visitante",
+          time_casa: homeName,
+          time_fora: awayName,
           logo_casa: home.teamIconUrl || null,
           logo_fora: away.teamIconUrl || null,
           campeonato: `${league.name}`,
@@ -1291,7 +1318,7 @@ async function fetchJogosAlternative() {
             empate: reduceOdd(decimalOdd((m.matchID || 1) + 1, 2.75)),
             fora: reduceOdd(decimalOdd((m.matchID || 1) + 2, 1.85))
           },
-          mercados: buildDemoMarkets(home.teamName || "Mandante", away.teamName || "Visitante")
+          mercados: hasStats ? OddsCalc.buildMarketsFromStats(homeName, awayName, stats) : buildDemoMarkets(homeName, awayName)
         });
       }
     } catch (error) {
@@ -1312,25 +1339,29 @@ async function fetchJogosAlternative() {
           const away = m.team2 || {};
           const finalResult = m.matchResults?.find(r => r.resultName === "Endergebnis");
 
-          allJogos.push({
-            id: m.matchID || Math.random().toString(36).slice(2),
-            time_casa: home.teamName || "Mandante",
-            time_fora: away.teamName || "Visitante",
-            logo_casa: home.teamIconUrl || null,
-            logo_fora: away.teamIconUrl || null,
-            campeonato: m.leagueName || "Campeonato",
-            data: "Hoje",
-            hora: new Date(m.matchDateTimeUTC || m.matchDateTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-            status: m.matchIsFinished ? "FT" : "Pre-jogo",
-            allow_aposta: !m.matchIsFinished,
-            placar: finalResult ? `${finalResult.pointsTeam1} - ${finalResult.pointsTeam2}` : null,
-            odds_1x2: {
-              casa: reduceOdd(decimalOdd(m.matchID || 1, 1.55)),
-              empate: reduceOdd(decimalOdd((m.matchID || 1) + 1, 2.75)),
-              fora: reduceOdd(decimalOdd((m.matchID || 1) + 2, 1.85))
-            },
-            mercados: buildDemoMarkets(home.teamName || "Mandante", away.teamName || "Visitante")
-          });
+        const homeName = home.teamName || "Mandante";
+        const awayName = away.teamName || "Visitante";
+        const stats = window.ESTATISTICAS;
+        const hasStats = stats && stats[homeName] && stats[awayName];
+        allJogos.push({
+          id: m.matchID || Math.random().toString(36).slice(2),
+          time_casa: homeName,
+          time_fora: awayName,
+          logo_casa: home.teamIconUrl || null,
+          logo_fora: away.teamIconUrl || null,
+          campeonato: m.leagueName || "Campeonato",
+          data: "Hoje",
+          hora: new Date(m.matchDateTimeUTC || m.matchDateTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          status: m.matchIsFinished ? "FT" : "Pre-jogo",
+          allow_aposta: !m.matchIsFinished,
+          placar: finalResult ? `${finalResult.pointsTeam1} - ${finalResult.pointsTeam2}` : null,
+          odds_1x2: {
+            casa: reduceOdd(decimalOdd(m.matchID || 1, 1.55)),
+            empate: reduceOdd(decimalOdd((m.matchID || 1) + 1, 2.75)),
+            fora: reduceOdd(decimalOdd((m.matchID || 1) + 2, 1.85))
+          },
+          mercados: hasStats ? OddsCalc.buildMarketsFromStats(homeName, awayName, stats) : buildDemoMarkets(homeName, awayName)
+        });
         }
       }
     } catch (error) {
@@ -1345,6 +1376,7 @@ window.BetLocal = {
   fetchJogos,
   fetchJogosAlternative,
   enrichJogosWithLogos,
+  OddsCalc,
   decimalOdd,
   reduceOdd,
   buildDemoMarkets,

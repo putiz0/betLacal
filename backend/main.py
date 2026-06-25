@@ -413,6 +413,12 @@ def get_jogos(
     payload = api_football_get("/fixtures", params)
     fixtures = payload.get("response", [])
     bettable_fixtures = [fixture for fixture in fixtures if is_fixture_bettable(fixture)]
+    live_fixtures = [
+        fixture for fixture in fixtures
+        if not is_fixture_bettable(fixture)
+        and not is_finished_status(fixture.get("fixture", {}).get("status", {}).get("short"))
+        and not is_cancelled_status(fixture.get("fixture", {}).get("status", {}).get("short"))
+    ]
     odds_by_fixture = load_odds_by_date(data)
 
     if not bettable_fixtures and not live:
@@ -422,24 +428,28 @@ def get_jogos(
         if season is not None:
             next_params["season"] = season
         next_payload = api_football_get("/fixtures", next_params)
-        bettable_fixtures = [
+        next_bettable = [
             fixture for fixture in next_payload.get("response", [])
             if is_fixture_bettable(fixture)
         ]
-        if bettable_fixtures:
-            first_next_date = parse_fixture_datetime(bettable_fixtures[0].get("fixture", {}).get("date"))
+        if next_bettable:
+            bettable_fixtures.extend(next_bettable)
+            first_next_date = parse_fixture_datetime(next_bettable[0].get("fixture", {}).get("date"))
             if first_next_date:
                 odds_by_fixture = load_odds_by_date(first_next_date.date())
 
-    return {
-        "jogos": [
-            map_fixture(
-                fixture,
-                odds_by_fixture.get(int(fixture.get("fixture", {}).get("id") or 0)),
-            )
-            for fixture in bettable_fixtures
-        ]
-    }
+    bettable_jogos = [
+        map_fixture(fixture, odds_by_fixture.get(int(fixture.get("fixture", {}).get("id") or 0)))
+        for fixture in bettable_fixtures
+    ]
+    live_jogos = []
+    for fixture in live_fixtures:
+        mapped = map_fixture(fixture, None)
+        mapped["status"] = "Ao vivo"
+        mapped["allow_aposta"] = False
+        live_jogos.append(mapped)
+
+    return {"jogos": bettable_jogos + live_jogos}
 
 
 @app.get("/api/jogos/status")

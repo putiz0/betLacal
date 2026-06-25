@@ -437,11 +437,15 @@ serve(async (req) => {
         );
       }
 
-      let fixtures = (payload.response || []).filter(isFixtureBettable);
+      const allFixtures = payload.response || [];
+      const bettableFixtures = allFixtures.filter(isFixtureBettable);
+      let liveFixtures = allFixtures.filter((f) => {
+        const s = f.fixture?.status?.short || "";
+        return !PRE_MATCH_STATUSES.has(s) && !FINISHED_STATUSES.has(s) && !CANCELLED_STATUSES.has(s);
+      });
       let oddsByFixture: Record<number, any> = {};
 
-      // Só chama odds se houver fixtures
-      if (fixtures.length) {
+      if (bettableFixtures.length) {
         try {
           oddsByFixture = await loadOddsByDate(date);
         } catch {
@@ -449,16 +453,16 @@ serve(async (req) => {
         }
       }
 
-      // Se nao houver jogos, tentar "next"
-      if (!fixtures.length && !live) {
+      if (!bettableFixtures.length && !live) {
         const nextParams: Record<string, string> = { next: "30", timezone: DEFAULT_TIMEZONE };
         if (league) nextParams.league = league;
         if (season) nextParams.season = season;
         try {
           const nextPayload = await apiFootballGet("/fixtures", nextParams);
-          fixtures = (nextPayload.response || []).filter(isFixtureBettable);
-          if (fixtures.length) {
-            const firstDate = parseFixtureDatetime(fixtures[0].fixture?.date);
+          const nextFixtures = (nextPayload.response || []).filter(isFixtureBettable);
+          if (nextFixtures.length) {
+            bettableFixtures.push(...nextFixtures);
+            const firstDate = parseFixtureDatetime(nextFixtures[0].fixture?.date);
             if (firstDate) {
               oddsByFixture = await loadOddsByDate(firstDate.toISOString().slice(0, 10));
             }
@@ -468,7 +472,14 @@ serve(async (req) => {
         }
       }
 
-      const jogos = fixtures.map((f) => mapFixture(f, oddsByFixture[f.fixture?.id]));
+      const bettableJogos = bettableFixtures.map((f) => mapFixture(f, oddsByFixture[f.fixture?.id]));
+      const liveJogos = liveFixtures.map((f) => {
+        const mapped = mapFixture(f, null);
+        mapped.status = "Ao vivo";
+        mapped.allow_aposta = false;
+        return mapped;
+      });
+      const jogos = [...bettableJogos, ...liveJogos];
 
       return new Response(
         JSON.stringify({ jogos, api_error: apiError, source: apiError ? "demo" : "api" }),

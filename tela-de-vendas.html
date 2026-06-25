@@ -128,6 +128,7 @@
   <script src="js/supabase.js"></script>
   <script src="js/tenant.js"></script>
   <script src="js/league-mapping.js"></script>
+  <script src="js/odds-calc.js"></script>
   <script src="js/app.js"></script>
   <script src="js/toast.js"></script>
   <script src="js/ui-utils.js"></script>
@@ -152,18 +153,13 @@
       const badge = document.getElementById("data-source-badge");
       if (!badge || !window.BetLocalConfig?.showDataSourceBadge) return;
       const d = e.detail;
-      if (d.source === "api" || d.source === "api-football") {
-        badge.textContent = "⚡ API Ao Vivo";
+      if (d.source === "placar") {
+        badge.textContent = "📋 Placar";
         badge.style.display = "inline-flex";
         badge.style.background = "rgba(36,217,130,0.18)";
         badge.style.color = "#a8f5ce";
-      } else if (d.source === "alt-api" || d.source === "openligadb") {
-        badge.textContent = "🟢 OpenLigaDB";
-        badge.style.display = "inline-flex";
-        badge.style.background = "rgba(59,130,246,0.18)";
-        badge.style.color = "#93c5fd";
       } else if (d.source === "api-error") {
-        badge.textContent = "⚠️ API Offline";
+        badge.textContent = "⚠️ Scraper Offline";
         badge.style.display = "inline-flex";
         badge.style.background = "rgba(255,200,87,0.18)";
         badge.style.color = "#ffe09a";
