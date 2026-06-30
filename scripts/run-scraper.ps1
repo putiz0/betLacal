@@ -5,6 +5,12 @@ param(
 $ErrorActionPreference = "Stop"
 $ProjectDir = "C:\projetoBetLocal"
 
+# Garantir que TOR_PROXY está definido para os scrapers
+if (-not $env:TOR_PROXY) {
+  $env:TOR_PROXY = "socks5://127.0.0.1:9150"
+  Write-Host "[TOR] TOR_PROXY definido como $env:TOR_PROXY" -ForegroundColor Cyan
+}
+
 Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Iniciando scrapers..." -ForegroundColor Cyan
 
 Set-Location -LiteralPath $ProjectDir

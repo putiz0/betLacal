@@ -21,9 +21,23 @@ if (-not (Test-Path $ScriptPath)) {
 
 # Verificar se Tor está instalado
 $TorPath = "C:\ProgramData\Tor\tor\tor.exe"
-if (-not (Test-Path $TorPath)) {
+$TorInstalled = Test-Path $TorPath
+if (-not $TorInstalled) {
   Write-Host "[AVISO] Tor não encontrado em $TorPath" -ForegroundColor Yellow
   Write-Host "[AVISO] Instale o Tor Expert Bundle em C:\ProgramData\Tor\ e configure o serviço" -ForegroundColor Yellow
+}
+
+# Verificar se o processo Tor está rodando
+$TorRunning = Get-Process -Name "tor" -ErrorAction SilentlyContinue
+if (-not $TorRunning) {
+  Write-Host "[AVISO] Processo Tor não está rodando. Inicie o Tor para usar proxy." -ForegroundColor Yellow
+}
+
+# Verificar se TOR_PROXY está definido
+$TorProxySet = [Environment]::GetEnvironmentVariable("TOR_PROXY", "Machine") -or [Environment]::GetEnvironmentVariable("TOR_PROXY", "User")
+if (-not $TorProxySet) {
+  Write-Host "[AVISO] Variável TOR_PROXY não configurada. Os scrapers não usarão Tor." -ForegroundColor Yellow
+  Write-Host "[AVISO] Configure com: [Environment]::SetEnvironmentVariable('TOR_PROXY', 'socks5://127.0.0.1:9150', 'User')" -ForegroundColor Yellow
 }
 
 Write-Host "[TASK] Registrando tarefa '$TaskName'..." -ForegroundColor Cyan

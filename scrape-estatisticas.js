@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const TOR_PROXY = process.env.TOR_PROXY || 'socks5://127.0.0.1:9050';
+const TOR_PROXY = process.env.TOR_PROXY;
 const OUTPUT_FILE = path.join(__dirname, 'api', 'estatisticas.json');
 const GAMES_FILE = path.join(__dirname, 'api', 'placar-jogos.json');
 const DATA_TTL_HOURS = 6;
@@ -307,7 +307,9 @@ async function main() {
 
   log('INFO', `Times: ${Object.keys(teamMap).length}`);
 
-  const browser = await chromium.launch({ headless: true, args: BROWSER_ARGS });
+  const torProxy = TOR_PROXY ? { server: TOR_PROXY } : undefined;
+  if (torProxy) log('INFO', `TOR: Usando proxy ${TOR_PROXY}`);
+  const browser = await chromium.launch({ headless: true, args: BROWSER_ARGS, proxy: torProxy });
 
   try {
     const leagueCodes = new Set();

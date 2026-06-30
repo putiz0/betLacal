@@ -516,8 +516,8 @@ async function scrapePlacar() {
   try {
     log('INFO', 'Acessando site...');
     await withRetry(() => page.goto('https://www.placardefutebol.com.br/jogos-de-hoje', {
-      waitUntil: 'networkidle',
-      timeout: 45000,
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
     }), 3, 3000);
 
     await page.waitForTimeout(2000);

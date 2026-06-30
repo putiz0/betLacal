@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
-const TOR_PROXY = process.env.TOR_PROXY || 'socks5://127.0.0.1:9050';
+const TOR_PROXY = process.env.TOR_PROXY;
 const OUTPUT = path.join(__dirname, 'api', 'estatisticas.json');
 const PLACAR = path.join(__dirname, 'api', 'placar-jogos.json');
 
@@ -259,7 +259,7 @@ async function fetchLeagueStats(page, config) {
 
 async function main() {
   log('INFO', '=== Sofascore Stat Scraper ===');
-  log('INFO', `Tor proxy: ${TOR_PROXY}`);
+  if (TOR_PROXY) log('INFO', `Tor proxy: ${TOR_PROXY}`);
 
   let placarData;
   try {
@@ -287,9 +287,11 @@ async function main() {
     log('INFO', 'Nenhum estatisticas.json existente.');
   }
 
+  const torProxy = TOR_PROXY ? { server: TOR_PROXY } : undefined;
+  if (torProxy) log('INFO', `TOR: Usando proxy ${TOR_PROXY}`);
   const browser = await chromium.launch({
     headless: true,
-    proxy: { server: TOR_PROXY },
+    proxy: torProxy,
     args: ['--disable-blink-features=AutomationControlled'],
   });
   const ctx = await browser.newContext({
