@@ -33,12 +33,14 @@ function planHasFeature(planId, feature) {
 
 const DEFAULT_CLIENT_ID = "cliente-local";
 
+// Cliente de demonstracao SEM credenciais hardcoded.
+// O login demo (usuario/senha) e fornecido via window.__BETLOCAL_DEMO_USERS__
+// em js/config.local.js (nao versionado) e so ativa em gameMode "demo".
 const DEFAULT_CLIENTS = [
   {
     id: DEFAULT_CLIENT_ID,
     nome: "Bet Local",
     email: "dono@betlocal.local",
-    senha_demo: "123456",
     plano: "master",
     inicio: new Date().toISOString().slice(0, 10),
     vencimento: addDays(new Date(), 30).toISOString().slice(0, 10),
@@ -49,10 +51,7 @@ const DEFAULT_CLIENTS = [
       cor_fundo: "#090b10",
       logo_url: ""
     },
-    usuarios: [
-      { email: "super@betlocal.local", senha_demo: "123456", role: "super_admin", nome: "Super admin" },
-      { email: "dono@betlocal.local", senha_demo: "123456", role: "dono", nome: "Dono local" }
-    ]
+    usuarios: []
   }
 ];
 
@@ -162,7 +161,14 @@ function isValidHexColor(str) {
 }
 
 function sanitizeUrl(str) {
-  return String(str || "").replace(/[^a-zA-Z0-9:/._~%#?&=+@\[\]-]/g, "");
+  const value = String(str || "").trim();
+  if (!value) return "";
+  // Permite apenas http(s) e caminhos relativos. Bloqueia javascript:, data:, etc.
+  if (/^(https?:)?\/\//i.test(value) || value.startsWith("/") || value.startsWith("./")) {
+    // Remove caracteres perigosos para contexto CSS/url().
+    return value.replace(/[<>"'`{}|^\\]/g, "");
+  }
+  return "";
 }
 
 function applyClientTheme(client = getCurrentClient()) {
@@ -276,6 +282,15 @@ function enforceClientLicense() {
 
 const _loginAttempts = new Map();
 
+// Indica se o modo demo local (sem Supabase Auth) esta habilitado.
+// So e verdadeiro quando o app esta em gameMode "demo" e existem usuarios
+// demo definidos em window.__BETLOCAL_DEMO_USERS__ (js/config.local.js).
+function isLocalDemoAuthEnabled() {
+  const mode = window.BetLocalConfig?.gameMode;
+  const demoUsers = window.__BETLOCAL_DEMO_USERS__;
+  return mode === "demo" && Array.isArray(demoUsers) && demoUsers.length > 0;
+}
+
 async function signIn(email, password) {
   const normalizedEmail = String(email).toLowerCase().trim();
   const attempts = _loginAttempts.get(normalizedEmail) || 0;
@@ -303,20 +318,30 @@ async function signIn(email, password) {
     }
   }
 
-  const client = loadClients().find((item) =>
-    item.usuarios?.some((user) => user.email.toLowerCase().trim() === normalizedEmail && user.senha_demo === password)
-  );
-  const user = client?.usuarios?.find((item) => item.email.toLowerCase().trim() === normalizedEmail && item.senha_demo === password);
-  if (!client || !user) {
-    _loginAttempts.set(normalizedEmail, attempts + 1);
-    setTimeout(() => _loginAttempts.delete(normalizedEmail), 30000);
-    throw new Error("Email ou senha invalidos.");
+  // Fallback de demonstracao: SOMENTE em gameMode "demo" com usuarios
+  // definidos via config local nao-versionada. Nunca hardcodeado.
+  if (isLocalDemoAuthEnabled()) {
+    const demoUsers = window.__BETLOCAL_DEMO_USERS__;
+    const user = demoUsers.find((u) =>
+      String(u.email || "").toLowerCase().trim() === normalizedEmail && u.password === password
+    );
+    if (user) {
+      _loginAttempts.delete(normalizedEmail);
+      const client = getClientById(user.cliente_id || DEFAULT_CLIENT_ID);
+      const session = {
+        email: user.email,
+        role: user.role || "dono",
+        cliente_id: client.id,
+        provider: "local-demo"
+      };
+      setSession(session);
+      return session;
+    }
   }
 
-  _loginAttempts.delete(normalizedEmail);
-  const session = { email: user.email, role: user.role, cliente_id: client.id, provider: "local" };
-  setSession(session);
-  return session;
+  _loginAttempts.set(normalizedEmail, attempts + 1);
+  setTimeout(() => _loginAttempts.delete(normalizedEmail), 30000);
+  throw new Error("Email ou senha invalidos.");
 }
 
 function signOut() {

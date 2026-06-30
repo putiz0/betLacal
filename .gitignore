@@ -5,3 +5,7 @@ supabase/.temp/
 *.log
 .DS_Store
 Thumbs.db
+
+# Configuração local com secrets (NUNCA commitar)
+js/config.local.js
+config.local.js

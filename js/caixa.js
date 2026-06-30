@@ -76,7 +76,7 @@ function renderCaixaInfo(boxId = "caixa-info") {
   const caixa = getCaixa();
   if (caixa?.aberto) {
     box.innerHTML = `
-      <div><strong>Caixa aberto desde:</strong> ${caixa.abertoEmLocal}</div>
+      <div><strong>Caixa aberto desde:</strong> ${window.BetLocal.escapeHTML(caixa.abertoEmLocal || "")}</div>
       <div><strong>Valor inicial:</strong> ${window.BetLocal.currency.format(caixa.valorInicial)}</div>
       <div><strong>Operador:</strong> ${window.BetLocal.escapeHTML(caixa.operador)}</div>
       ${caixa.obs ? `<div><strong>Obs:</strong> ${window.BetLocal.escapeHTML(caixa.obs)}</div>` : ""}
@@ -96,7 +96,7 @@ function renderHistoricoCaixa(boxId = "historico-caixa") {
   }
   box.innerHTML = turnos.map(t => `
     <div class="cliente-card">
-      <div class="nome">${t.tipo === "abertura" ? "🔓 Abertura" : "🔒 Fechamento"} — ${t.data}</div>
+      <div class="nome">${t.tipo === "abertura" ? "🔓 Abertura" : "🔒 Fechamento"} — ${window.BetLocal.escapeHTML(t.data || "")}</div>
       <div class="info">Valor: ${window.BetLocal.currency.format(t.valor || t.valorInicial || 0)}</div>
       ${t.diferenca !== undefined ? `<div class="stats"><span>Diferença: ${window.BetLocal.currency.format(t.diferenca)}</span><span>Bilhetes: ${t.bilhetes || 0}</span></div>` : ""}
     </div>

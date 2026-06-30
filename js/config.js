@@ -1,33 +1,63 @@
-const BETLOCAL_CONFIG = {
-  // API backend: Supabase Edge Function (online) ou local
-  backendUrl: "https://uagwqerjcjjlnftytkqe.supabase.co/functions/v1/api-football",
-  
+// ============================================
+// Bet Local - Configuração (sem secrets hardcoded)
+// ============================================
+// Este arquivo NÃO contém chaves nem URLs de produção.
+// As configurações sensíveis (Supabase URL/anon key, backendUrl)
+// devem vir de UMA das fontes abaixo, em ordem de prioridade:
+//
+//   1. window.__BETLOCAL_CONFIG__  -> definida por um arquivo local
+//      não-versionado (ex.: js/config.local.js), carregado antes deste.
+//   2. localStorage["betlocal.config"] -> setado pelo painel admin.
+//   3. Defaults não-secretos abaixo (modo degradado/demo).
+//
+// Veja js/config.template.js para criar o seu js/config.local.js.
+
+const BETLOCAL_CONFIG_DEFAULTS = {
+  // API backend: Supabase Edge Function (produção) ou local.
+  // Vazio por padrão -> o app avisa no console e roda em modo demo.
+  backendUrl: "",
+
   // Supabase
-  supabaseUrl: "https://uagwqerjcjjlnftytkqe.supabase.co",
-  supabaseAnonKey: "sb_publishable_K6kMg8_wOUqzrpP3xziF2Q_PpSz4-Z6",
-  
+  supabaseUrl: "",
+  supabaseAnonKey: "",
+
   // Modo de jogos: "auto" = tenta API real primeiro, "demo" = sempre fake, "api" = sempre tenta API
-  gameMode: "auto",
-  
+  gameMode: "demo",
+
   // Intervalo de refresh automático em segundos (0 = desligado)
   autoRefreshSeconds: 300,
-  
+
   // Mostrar badge indicando fonte dos dados (API real vs Demo)
   showDataSourceBadge: true,
-  
+
   // Cache TTL em segundos para evitar requisições excessivas
   cacheTtlSeconds: 120,
 };
 
-// Persistir config no localStorage
-function loadConfig() {
+function readInjectedConfig() {
+  // 1. Config injetada por arquivo local não-versionado (config.local.js)
+  if (typeof window !== "undefined" && window.__BETLOCAL_CONFIG__) {
+    return window.__BETLOCAL_CONFIG__;
+  }
+  // 2. Config persistida no localStorage pelo painel admin
   try {
     const saved = JSON.parse(localStorage.getItem("betlocal.config") || "null");
-    if (saved) Object.assign(BETLOCAL_CONFIG, saved);
-  } catch {}
+    if (saved && typeof saved === "object") return saved;
+  } catch {
+    /* ignora localStorage inválido */
+  }
+  return {};
 }
 
+function loadConfig() {
+  const injected = readInjectedConfig();
+  return Object.assign({}, BETLOCAL_CONFIG_DEFAULTS, injected);
+}
+
+const BETLOCAL_CONFIG = loadConfig();
+
 function saveConfig() {
+  // Só persiste o que não é default sensível; mantém compatibilidade com painel admin.
   localStorage.setItem("betlocal.config", JSON.stringify(BETLOCAL_CONFIG));
 }
 
@@ -42,16 +72,22 @@ function setBackendUrl(url) {
 }
 
 function getBackendUrl(path = "/fixtures") {
-  // Se for Edge Function do Supabase, o path já está incluído na URL base
-  const base = BETLOCAL_CONFIG.backendUrl.replace(/\/$/, "");
-  if (base.includes("supabase.co")) {
-    return `${base}${path}`;
-  }
-  // Se for backend local Python
+  const base = (BETLOCAL_CONFIG.backendUrl || "").replace(/\/$/, "");
+  if (!base) return "";
+  // Edge Function do Supabase já inclui o path base na URL.
   return `${base}${path}`;
 }
 
-loadConfig();
+function isConfigured() {
+  return Boolean(BETLOCAL_CONFIG.backendUrl && BETLOCAL_CONFIG.supabaseUrl && BETLOCAL_CONFIG.supabaseAnonKey);
+}
+
+if (!isConfigured() && typeof console !== "undefined") {
+  console.warn(
+    "[BetLocal] Configuração incompleta: backendUrl/supabaseUrl/supabaseAnonKey ausentes. " +
+      "Defina-os via js/config.local.js (veja js/config.template.js). Rodando em modo demo/degradado."
+  );
+}
 
 window.BetLocalConfig = {
   ...BETLOCAL_CONFIG,
@@ -59,6 +95,7 @@ window.BetLocalConfig = {
   setBackendUrl,
   getBackendUrl,
   saveConfig,
+  isConfigured,
   supabaseUrl: BETLOCAL_CONFIG.supabaseUrl,
   supabaseAnonKey: BETLOCAL_CONFIG.supabaseAnonKey,
 };

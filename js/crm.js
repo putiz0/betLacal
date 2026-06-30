@@ -50,7 +50,7 @@ function renderClientes(boxId = "lista-clientes", detalhesId = "cliente-detalhes
     return `
       <div class="cliente-card" style="cursor:pointer;" data-cliente-id="${window.BetLocal.escapeHTML(c.id)}">
         <div class="nome">${window.BetLocal.escapeHTML(c.nome)} ${c.apelido ? `(${window.BetLocal.escapeHTML(c.apelido)})` : ""}</div>
-        <div class="info">📞 ${window.BetLocal.escapeHTML(c.telefone || "—")} | Cadastrado: ${c.cadastradoEm}</div>
+        <div class="info">📞 ${window.BetLocal.escapeHTML(c.telefone || "—")} | Cadastrado: ${window.BetLocal.escapeHTML(c.cadastradoEm || "")}</div>
         <div class="stats">
           <span>🎫 ${apostas.length} bilhetes</span>
           <span>💰 ${window.BetLocal.currency.format(totalApostado)}</span>

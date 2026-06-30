@@ -407,28 +407,46 @@ function initClientesSaaS() {
     const btn = form.querySelector('button[type="submit"]');
     setLoading(btn, true);
     const data = Object.fromEntries(new FormData(form));
-    if ((data.senha || "").length < 4) {
-      showToast("Senha precisa ter 4+ caracteres", "warning");
+    if ((data.senha || "").length < 6) {
+      showToast("Senha precisa ter 6+ caracteres", "warning");
       setLoading(btn, false);
       return;
     }
     try {
       const clientId = "cliente-" + Date.now();
       if (window.BetLocalSupabase?.client) {
+        // 1. Cria a conta do dono no Supabase Auth (autenticacao real).
+        const { data: signUpData, error: authError } =
+          await window.BetLocalSupabase.client.auth.signUp({
+            email: String(data.email).trim().toLowerCase(),
+            password: String(data.senha)
+          });
+        if (authError) throw authError;
+        const userId = signUpData?.user?.id || null;
+
+        // 2. Cadastra o cliente e o perfil (vinculado ao usuario criado).
         await window.BetLocalSupabase.client.from("clientes").insert([{
           id: clientId, nome: data.nome, email: data.email, plano: data.plano,
           status: data.status, vencimento: data.vencimento, nome_sistema: data.nome_sistema,
           cor_primaria: data.cor_primaria, cor_fundo: data.cor_fundo, logo_url: data.logo_url,
           created_at: new Date().toISOString()
         }]);
+        if (userId) {
+          await window.BetLocalSupabase.client.from("user_profiles").upsert({
+            user_id: userId, cliente_id: clientId, role: "dono", nome: data.nome
+          }, { onConflict: "user_id" });
+        }
       }
       const clients = window.BetLocalTenant.loadClients();
+      // Nao armazenamos senha em texto puro. A autenticacao real e via Supabase Auth.
+      // Em modo demo, o admin nao grava credenciais; o acesso e feito por
+      // window.__BETLOCAL_DEMO_USERS__ (js/config.local.js).
       clients.push({
-        id: clientId, nome: data.nome, email: data.email, senha_demo: data.senha,
+        id: clientId, nome: data.nome, email: data.email,
         plano: data.plano, status: data.status, inicio: new Date().toISOString().slice(0, 10),
         vencimento: data.vencimento,
         tema: { nome_sistema: data.nome_sistema || data.nome, cor_primaria: data.cor_primaria || "#ff5a16", cor_fundo: data.cor_fundo || "#090b10", logo_url: data.logo_url || "" },
-        usuarios: [{ email: data.email, senha_demo: data.senha, role: "dono", nome: "Dono" }]
+        usuarios: [{ email: data.email, role: "dono", nome: "Dono" }]
       });
       window.BetLocalTenant.saveClients(clients);
       form.reset();
@@ -672,10 +690,12 @@ function initUserForm() {
       return;
     }
     try {
+      // Em producao, o cadastro de usuarios deve criar a conta via Supabase Auth
+      // (admin invite / auth.admin.createUser com service_role no backend).
+      // Aqui apenas registramos o perfil localmente, sem armazenar senha.
       window.BetLocalTenant.addUserToClient(client.id, {
         nome: String(data.get("nome")).trim(),
         email: String(data.get("email")).trim().toLowerCase(),
-        senha_demo: String(data.get("senha")),
         role
       });
       e.currentTarget.reset();

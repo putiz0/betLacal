@@ -1,10 +1,13 @@
-const SUPABASE_URL = window.BetLocalConfig?.supabaseUrl || "https://uagwqerjcjjlnftytkqe.supabase.co";
-const SUPABASE_ANON_KEY = window.BetLocalConfig?.supabaseAnonKey || "sb_publishable_K6kMg8_wOUqzrpP3xziF2Q_PpSz4-Z6";
+const SUPABASE_URL = window.BetLocalConfig?.supabaseUrl || "";
+const SUPABASE_ANON_KEY = window.BetLocalConfig?.supabaseAnonKey || "";
 const BETLOCAL_BETS_TABLE = "Apostas";
 
-const betLocalSupabaseClient = window.supabase?.createClient
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+// Só cria o cliente se a configuração estiver completa; caso contrário,
+// o app roda em modo degradado (demo) sem acionar o backend.
+const betLocalSupabaseClient =
+  window.supabase?.createClient && SUPABASE_URL && SUPABASE_ANON_KEY
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
 
 function betToSupabaseRow(bet) {
   return {

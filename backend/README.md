@@ -1,8 +1,25 @@
-# Bet Local Backend
+# Bet Local Backend (DEPRECATED)
 
-Este backend protege a chave da API-Football e entrega jogos para o front-end.
+> ⚠️ **DEPRECATED** — Este backend Python (FastAPI) está descontinuado.
+>
+> O backend canônico em produção é a **Edge Function do Supabase**
+> (`supabase/functions/api-football/index.ts`), conforme o `vercel.json`
+> e o workflow de CI (`.github/workflows/deploy.yml`), que fazem deploy
+> apenas da Edge Function + frontend na Vercel.
+>
+> Este código Python **duplica** a lógica da Edge Function e **não recebe
+> deploy**. Mantê-lo sincronizado gera drift e risco de divergência.
+>
+> - **Para desenvolvimento/produção**: use a Edge Function (TS).
+> - **Este backend** só deve ser usado como referência histórica ou para
+>   testes locais isolados. **Não há planos de mantê-lo atualizado.**
+>
+> Se quiser remover o drift definitivamente, considere excluir a pasta
+> `backend/` em uma futura limpeza.
 
-## Rodar
+---
+
+## Rodar (apenas para testes locais isolados)
 
 ```powershell
 $env:API_FOOTBALL_KEY="sua-chave-da-api-football"

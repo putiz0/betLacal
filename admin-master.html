@@ -109,7 +109,7 @@
               <div class="form-grid">
                 <label class="full">Nome da casa<input name="nome" required placeholder="Ex: Bar do João"></label>
                 <label>Email de acesso<input name="email" type="email" required placeholder="dono@email.com"></label>
-                <label>Senha inicial<input name="senha" type="text" required placeholder="Senha provisória"></label>
+                <label>Senha inicial (Supabase Auth)<input name="senha" type="password" minlength="6" placeholder="A conta é criada no Supabase Auth"></label>
                 <label>Plano
                   <select name="plano">
                     <option value="teste">🎁 Teste 30 dias</option>
@@ -175,7 +175,7 @@
             <form id="user-form" class="inline-form-user">
               <label>Nome<input name="nome" required placeholder="Nome"></label>
               <label>Email<input name="email" type="email" required placeholder="email@email.com"></label>
-              <label>Senha<input name="senha" type="text" required placeholder="Senha"></label>
+              <label>Senha (Supabase Auth)<input name="senha" type="password" minlength="6" placeholder="A conta é criada no Supabase Auth"></label>
               <label>Função
                 <select name="role">
                   <option value="operador">Operador</option>

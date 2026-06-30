@@ -1,5 +1,10 @@
 import os
 import time
+
+# NOTE: DEPRECATED. Este backend Python duplica a logica da Edge Function
+# do Supabase (supabase/functions/api-football/index.ts), que e o backend
+# canonico em producao (ver vercel.json e .github/workflows/deploy.yml).
+# Nao ha deploy deste codigo. Use a Edge Function para producao/desenvolvimento.
 from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
